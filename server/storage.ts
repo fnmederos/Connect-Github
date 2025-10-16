@@ -5,7 +5,9 @@ import {
   type Vehicle, 
   type InsertVehicle,
   type EmployeeAbsence,
-  type InsertEmployeeAbsence
+  type InsertEmployeeAbsence,
+  type DailyAssignment,
+  type InsertDailyAssignment
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -36,6 +38,13 @@ export interface IStorage {
   getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]>;
   createEmployeeAbsence(absence: InsertEmployeeAbsence): Promise<EmployeeAbsence>;
   deleteEmployeeAbsence(id: string): Promise<boolean>;
+
+  // Daily Assignment methods
+  getDailyAssignment(id: string): Promise<DailyAssignment | undefined>;
+  getAllDailyAssignments(): Promise<DailyAssignment[]>;
+  getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]>;
+  createDailyAssignment(assignment: InsertDailyAssignment): Promise<DailyAssignment>;
+  deleteDailyAssignment(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -43,12 +52,14 @@ export class MemStorage implements IStorage {
   private vehicles: Map<string, Vehicle>;
   private roles: string[];
   private employeeAbsences: Map<string, EmployeeAbsence>;
+  private dailyAssignments: Map<string, DailyAssignment>;
 
   constructor() {
     this.employees = new Map();
     this.vehicles = new Map();
     this.roles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
     this.employeeAbsences = new Map();
+    this.dailyAssignments = new Map();
   }
 
   // Employee methods
@@ -141,6 +152,37 @@ export class MemStorage implements IStorage {
 
   async deleteEmployeeAbsence(id: string): Promise<boolean> {
     return this.employeeAbsences.delete(id);
+  }
+
+  // Daily Assignment methods
+  async getDailyAssignment(id: string): Promise<DailyAssignment | undefined> {
+    return this.dailyAssignments.get(id);
+  }
+
+  async getAllDailyAssignments(): Promise<DailyAssignment[]> {
+    // Sort by date descending (newest first)
+    return Array.from(this.dailyAssignments.values())
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]> {
+    return Array.from(this.dailyAssignments.values())
+      .filter(assignment => assignment.date === date);
+  }
+
+  async createDailyAssignment(insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
+    const id = randomUUID();
+    const assignment: DailyAssignment = { 
+      ...insertAssignment, 
+      id,
+      createdAt: new Date()
+    };
+    this.dailyAssignments.set(id, assignment);
+    return assignment;
+  }
+
+  async deleteDailyAssignment(id: string): Promise<boolean> {
+    return this.dailyAssignments.delete(id);
   }
 }
 
