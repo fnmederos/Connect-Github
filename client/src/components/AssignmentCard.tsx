@@ -34,7 +34,7 @@ export default function AssignmentCard({
   vehicle,
   availableEmployees,
   availableRoles,
-  assignments,
+  assignments = [],
   onAddRow,
   onRemoveRow,
   onUpdateRole,
