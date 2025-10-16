@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -6,8 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Save } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 import AssignmentCard from "@/components/AssignmentCard";
-import type { Vehicle, Employee } from "@shared/schema";
+import type { Vehicle, Employee, EmployeeAbsence } from "@shared/schema";
 
 interface AssignmentRow {
   id: string;
@@ -38,6 +39,35 @@ export default function Dashboard() {
   const availableRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
 
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
+
+  // Query para obtener todas las ausencias
+  const { data: allAbsences = [] } = useQuery<EmployeeAbsence[]>({
+    queryKey: ['/api/absences'],
+    queryFn: async () => {
+      const response = await fetch('/api/absences');
+      if (!response.ok) throw new Error('Failed to fetch absences');
+      return response.json();
+    }
+  });
+
+  // Función para verificar si un empleado está disponible en una fecha
+  const isEmployeeAvailable = (employeeId: string, date: Date): boolean => {
+    const dateStr = date.toISOString();
+    return !allAbsences.some(absence => {
+      const absenceStart = new Date(absence.startDate);
+      const absenceEnd = new Date(absence.endDate);
+      const checkDate = new Date(dateStr);
+      
+      return absence.employeeId === employeeId &&
+             checkDate >= absenceStart &&
+             checkDate <= absenceEnd;
+    });
+  };
+
+  // Filtrar empleados disponibles según la fecha seleccionada
+  const availableEmployees = useMemo(() => {
+    return mockEmployees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
+  }, [mockEmployees, selectedDate, allAbsences]);
 
   // Inicializar con 2 filas por defecto para cada vehículo
   useEffect(() => {
@@ -157,7 +187,7 @@ export default function Dashboard() {
                 <AssignmentCard
                   key={vehicle.id}
                   vehicle={vehicle}
-                  availableEmployees={mockEmployees}
+                  availableEmployees={availableEmployees}
                   availableRoles={availableRoles}
                   assignments={vehicleAssignments[vehicle.id] || []}
                   onAddRow={() => handleAddRow(vehicle.id)}

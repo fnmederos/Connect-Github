@@ -23,9 +23,18 @@ export const assignments = pgTable("assignments", {
   details: text("details"),
 });
 
+export const employeeAbsences = pgTable("employee_absences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull(),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  reason: text("reason").notNull(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
 export const insertAssignmentSchema = createInsertSchema(assignments).omit({ id: true });
+export const insertEmployeeAbsenceSchema = createInsertSchema(employeeAbsences).omit({ id: true });
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
@@ -35,3 +44,6 @@ export type Vehicle = typeof vehicles.$inferSelect;
 
 export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
 export type Assignment = typeof assignments.$inferSelect;
+
+export type InsertEmployeeAbsence = z.infer<typeof insertEmployeeAbsenceSchema>;
+export type EmployeeAbsence = typeof employeeAbsences.$inferSelect;

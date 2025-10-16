@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import EmployeeCard from "@/components/EmployeeCard";
 import EmployeeDialog from "@/components/EmployeeDialog";
 import RolesDialog from "@/components/RolesDialog";
-import type { Employee } from "@shared/schema";
+import AvailabilityDialog from "@/components/AvailabilityDialog";
+import type { Employee, EmployeeAbsence } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +38,50 @@ export default function Employees() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+
+  // Query para obtener ausencias del empleado seleccionado
+  const { data: absences = [] } = useQuery<EmployeeAbsence[]>({
+    queryKey: ['/api/absences', selectedEmployee?.id],
+    enabled: !!selectedEmployee?.id && availabilityDialogOpen,
+    queryFn: async () => {
+      const response = await fetch(`/api/absences?employeeId=${selectedEmployee?.id}`);
+      if (!response.ok) throw new Error('Failed to fetch absences');
+      return response.json();
+    }
+  });
+
+  // Mutation para agregar ausencia
+  const addAbsenceMutation = useMutation({
+    mutationFn: async (data: { employeeId: string; startDate: string; endDate: string; reason: string }) => {
+      const response = await fetch('/api/absences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to add absence');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/absences'] });
+    },
+  });
+
+  // Mutation para eliminar ausencia
+  const deleteAbsenceMutation = useMutation({
+    mutationFn: async (absenceId: string) => {
+      const response = await fetch(`/api/absences/${absenceId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete absence');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/absences'] });
+    },
+  });
 
   const handleAdd = () => {
     setSelectedEmployee(null);
@@ -52,6 +96,11 @@ export default function Employees() {
   const handleDelete = (id: string) => {
     setEmployeeToDelete(id);
     setDeleteDialogOpen(true);
+  };
+
+  const handleManageAvailability = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setAvailabilityDialogOpen(true);
   };
 
   const confirmDelete = () => {
@@ -78,6 +127,14 @@ export default function Employees() {
 
   const handleSaveRoles = (roles: string[]) => {
     setAvailableRoles(roles);
+  };
+
+  const handleAddAbsence = (employeeId: string, startDate: string, endDate: string, reason: string) => {
+    addAbsenceMutation.mutate({ employeeId, startDate, endDate, reason });
+  };
+
+  const handleDeleteAbsence = (absenceId: string) => {
+    deleteAbsenceMutation.mutate(absenceId);
   };
 
   return (
@@ -126,6 +183,7 @@ export default function Employees() {
                   employee={employee}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onManageAvailability={handleManageAvailability}
                 />
               ))}
             </div>
@@ -147,6 +205,17 @@ export default function Employees() {
         roles={availableRoles}
         onSave={handleSaveRoles}
       />
+
+      {selectedEmployee && (
+        <AvailabilityDialog
+          open={availabilityDialogOpen}
+          onOpenChange={setAvailabilityDialogOpen}
+          employee={selectedEmployee}
+          absences={absences}
+          onAddAbsence={handleAddAbsence}
+          onDeleteAbsence={handleDeleteAbsence}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

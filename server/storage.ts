@@ -1,5 +1,12 @@
 import { randomUUID } from "crypto";
-import { type Employee, type InsertEmployee, type Vehicle, type InsertVehicle } from "@shared/schema";
+import { 
+  type Employee, 
+  type InsertEmployee, 
+  type Vehicle, 
+  type InsertVehicle,
+  type EmployeeAbsence,
+  type InsertEmployeeAbsence
+} from "@shared/schema";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -22,17 +29,26 @@ export interface IStorage {
   // Roles methods
   getAllRoles(): Promise<string[]>;
   saveRoles(roles: string[]): Promise<string[]>;
+
+  // Employee Absence methods
+  getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined>;
+  getAllAbsences(): Promise<EmployeeAbsence[]>;
+  getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]>;
+  createEmployeeAbsence(absence: InsertEmployeeAbsence): Promise<EmployeeAbsence>;
+  deleteEmployeeAbsence(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private employees: Map<string, Employee>;
   private vehicles: Map<string, Vehicle>;
   private roles: string[];
+  private employeeAbsences: Map<string, EmployeeAbsence>;
 
   constructor() {
     this.employees = new Map();
     this.vehicles = new Map();
     this.roles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
+    this.employeeAbsences = new Map();
   }
 
   // Employee methods
@@ -99,6 +115,32 @@ export class MemStorage implements IStorage {
   async saveRoles(roles: string[]): Promise<string[]> {
     this.roles = [...roles];
     return this.roles;
+  }
+
+  // Employee Absence methods
+  async getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined> {
+    return this.employeeAbsences.get(id);
+  }
+
+  async getAllAbsences(): Promise<EmployeeAbsence[]> {
+    return Array.from(this.employeeAbsences.values());
+  }
+
+  async getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]> {
+    return Array.from(this.employeeAbsences.values()).filter(
+      absence => absence.employeeId === employeeId
+    );
+  }
+
+  async createEmployeeAbsence(insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
+    const id = randomUUID();
+    const absence: EmployeeAbsence = { ...insertAbsence, id };
+    this.employeeAbsences.set(id, absence);
+    return absence;
+  }
+
+  async deleteEmployeeAbsence(id: string): Promise<boolean> {
+    return this.employeeAbsences.delete(id);
   }
 }
 

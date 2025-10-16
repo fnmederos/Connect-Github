@@ -1,16 +1,17 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, User } from "lucide-react";
+import { Pencil, Trash2, User, CalendarIcon } from "lucide-react";
 import type { Employee } from "@shared/schema";
 
 interface EmployeeCardProps {
   employee: Employee;
   onEdit: (employee: Employee) => void;
   onDelete: (id: string) => void;
+  onManageAvailability: (employee: Employee) => void;
 }
 
-export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCardProps) {
+export default function EmployeeCard({ employee, onEdit, onDelete, onManageAvailability }: EmployeeCardProps) {
   return (
     <Card className="p-4 hover-elevate">
       <div className="flex items-start justify-between gap-3">
@@ -37,6 +38,14 @@ export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCar
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onManageAvailability(employee)}
+            data-testid={`button-availability-employee-${employee.id}`}
+          >
+            <CalendarIcon className="w-4 h-4" />
+          </Button>
           <Button
             size="icon"
             variant="ghost"
