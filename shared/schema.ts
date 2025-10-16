@@ -47,6 +47,12 @@ export const templates = pgTable("templates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Roles configuration table
+export const roles = pgTable("roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
 export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).omit({ 

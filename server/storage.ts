@@ -9,8 +9,16 @@ import {
   type DailyAssignment,
   type InsertDailyAssignment,
   type Template,
-  type InsertTemplate
+  type InsertTemplate,
+  employees,
+  vehicles,
+  employeeAbsences,
+  dailyAssignments,
+  templates,
+  roles as rolesTable
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -226,4 +234,168 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// DatabaseStorage implementation using PostgreSQL with Drizzle ORM
+// Referenced from blueprint:javascript_database
+export class DatabaseStorage implements IStorage {
+  // Employee methods
+  async getEmployee(id: string): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.id, id));
+    return employee || undefined;
+  }
+
+  async getAllEmployees(): Promise<Employee[]> {
+    return await db.select().from(employees);
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    const [employee] = await db
+      .insert(employees)
+      .values(insertEmployee)
+      .returning();
+    return employee;
+  }
+
+  async updateEmployee(id: string, employeeData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const [updated] = await db
+      .update(employees)
+      .set(employeeData)
+      .where(eq(employees.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    const result = await db.delete(employees).where(eq(employees.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Vehicle methods
+  async getVehicle(id: string): Promise<Vehicle | undefined> {
+    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+    return vehicle || undefined;
+  }
+
+  async getAllVehicles(): Promise<Vehicle[]> {
+    return await db.select().from(vehicles);
+  }
+
+  async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+    const [vehicle] = await db
+      .insert(vehicles)
+      .values(insertVehicle)
+      .returning();
+    return vehicle;
+  }
+
+  async updateVehicle(id: string, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+    const [updated] = await db
+      .update(vehicles)
+      .set(vehicleData)
+      .where(eq(vehicles.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteVehicle(id: string): Promise<boolean> {
+    const result = await db.delete(vehicles).where(eq(vehicles.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Roles methods
+  async getAllRoles(): Promise<string[]> {
+    const roleRecords = await db.select().from(rolesTable);
+    return roleRecords.map(r => r.name);
+  }
+
+  async saveRoles(roles: string[]): Promise<string[]> {
+    // Clear existing roles and insert new ones
+    await db.delete(rolesTable);
+    
+    if (roles.length > 0) {
+      await db.insert(rolesTable).values(
+        roles.map(name => ({ name }))
+      );
+    }
+    
+    return roles;
+  }
+
+  // Employee Absence methods
+  async getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined> {
+    const [absence] = await db.select().from(employeeAbsences).where(eq(employeeAbsences.id, id));
+    return absence || undefined;
+  }
+
+  async getAllAbsences(): Promise<EmployeeAbsence[]> {
+    return await db.select().from(employeeAbsences);
+  }
+
+  async getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]> {
+    return await db.select().from(employeeAbsences).where(eq(employeeAbsences.employeeId, employeeId));
+  }
+
+  async createEmployeeAbsence(insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
+    const [absence] = await db
+      .insert(employeeAbsences)
+      .values(insertAbsence)
+      .returning();
+    return absence;
+  }
+
+  async deleteEmployeeAbsence(id: string): Promise<boolean> {
+    const result = await db.delete(employeeAbsences).where(eq(employeeAbsences.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Daily Assignment methods
+  async getDailyAssignment(id: string): Promise<DailyAssignment | undefined> {
+    const [assignment] = await db.select().from(dailyAssignments).where(eq(dailyAssignments.id, id));
+    return assignment || undefined;
+  }
+
+  async getAllDailyAssignments(): Promise<DailyAssignment[]> {
+    return await db.select().from(dailyAssignments).orderBy(desc(dailyAssignments.date));
+  }
+
+  async getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]> {
+    return await db.select().from(dailyAssignments).where(eq(dailyAssignments.date, date));
+  }
+
+  async createDailyAssignment(insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
+    const [assignment] = await db
+      .insert(dailyAssignments)
+      .values(insertAssignment)
+      .returning();
+    return assignment;
+  }
+
+  async deleteDailyAssignment(id: string): Promise<boolean> {
+    const result = await db.delete(dailyAssignments).where(eq(dailyAssignments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Template methods
+  async getTemplate(id: string): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.id, id));
+    return template || undefined;
+  }
+
+  async getAllTemplates(): Promise<Template[]> {
+    return await db.select().from(templates).orderBy(desc(templates.createdAt));
+  }
+
+  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+    const [template] = await db
+      .insert(templates)
+      .values(insertTemplate)
+      .returning();
+    return template;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.id, id)).returning();
+    return result.length > 0;
+  }
+}
+
+export const storage = new DatabaseStorage();
