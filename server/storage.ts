@@ -7,7 +7,9 @@ import {
   type EmployeeAbsence,
   type InsertEmployeeAbsence,
   type DailyAssignment,
-  type InsertDailyAssignment
+  type InsertDailyAssignment,
+  type Template,
+  type InsertTemplate
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -45,6 +47,12 @@ export interface IStorage {
   getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]>;
   createDailyAssignment(assignment: InsertDailyAssignment): Promise<DailyAssignment>;
   deleteDailyAssignment(id: string): Promise<boolean>;
+
+  // Template methods
+  getTemplate(id: string): Promise<Template | undefined>;
+  getAllTemplates(): Promise<Template[]>;
+  createTemplate(template: InsertTemplate): Promise<Template>;
+  deleteTemplate(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -53,6 +61,7 @@ export class MemStorage implements IStorage {
   private roles: string[];
   private employeeAbsences: Map<string, EmployeeAbsence>;
   private dailyAssignments: Map<string, DailyAssignment>;
+  private templates: Map<string, Template>;
 
   constructor() {
     this.employees = new Map();
@@ -60,6 +69,7 @@ export class MemStorage implements IStorage {
     this.roles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
     this.employeeAbsences = new Map();
     this.dailyAssignments = new Map();
+    this.templates = new Map();
   }
 
   // Employee methods
@@ -183,6 +193,36 @@ export class MemStorage implements IStorage {
 
   async deleteDailyAssignment(id: string): Promise<boolean> {
     return this.dailyAssignments.delete(id);
+  }
+
+  // Template methods
+  async getTemplate(id: string): Promise<Template | undefined> {
+    return this.templates.get(id);
+  }
+
+  async getAllTemplates(): Promise<Template[]> {
+    // Sort by createdAt descending (newest first)
+    return Array.from(this.templates.values())
+      .sort((a, b) => {
+        const dateA = a.createdAt?.getTime() || 0;
+        const dateB = b.createdAt?.getTime() || 0;
+        return dateB - dateA;
+      });
+  }
+
+  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+    const id = randomUUID();
+    const template: Template = { 
+      ...insertTemplate, 
+      id,
+      createdAt: new Date()
+    };
+    this.templates.set(id, template);
+    return template;
+  }
+
+  async deleteTemplate(id: string): Promise<boolean> {
+    return this.templates.delete(id);
   }
 }
 
