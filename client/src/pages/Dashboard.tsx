@@ -21,11 +21,11 @@ export default function Dashboard() {
 
   // TODO: remove mock functionality - replace with real data
   const mockEmployees: Employee[] = [
-    { id: '1', name: 'Juan Pérez', role: 'Conductor' },
-    { id: '2', name: 'María García', role: 'Ayudante' },
-    { id: '3', name: 'Carlos López', role: 'Conductor' },
-    { id: '4', name: 'Ana Martínez', role: 'Ayudante' },
-    { id: '5', name: 'Pedro Sánchez', role: 'Operario' },
+    { id: '1', name: 'Juan Pérez', roles: ['CHOFER'] },
+    { id: '2', name: 'María García', roles: ['PEON'] },
+    { id: '3', name: 'Carlos López', roles: ['CHOFER', 'OPERARIO'] },
+    { id: '4', name: 'Ana Martínez', roles: ['AYUDANTE'] },
+    { id: '5', name: 'Pedro Sánchez', roles: ['OPERARIO'] },
   ];
 
   const mockVehicles: Vehicle[] = [

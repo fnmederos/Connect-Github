@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, User } from "lucide-react";
 import type { Employee } from "@shared/schema";
 
@@ -18,12 +19,21 @@ export default function EmployeeCard({ employee, onEdit, onDelete }: EmployeeCar
             <User className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm truncate" data-testid={`text-employee-name-${employee.id}`}>
+            <h3 className="font-medium text-sm mb-2" data-testid={`text-employee-name-${employee.id}`}>
               {employee.name}
             </h3>
-            <p className="text-xs text-muted-foreground truncate mt-0.5" data-testid={`text-employee-role-${employee.id}`}>
-              {employee.role}
-            </p>
+            <div className="flex flex-wrap gap-1">
+              {employee.roles?.map((role) => (
+                <Badge 
+                  key={role} 
+                  variant="secondary" 
+                  className="text-xs"
+                  data-testid={`badge-employee-role-${employee.id}-${role}`}
+                >
+                  {role}
+                </Badge>
+              ))}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">

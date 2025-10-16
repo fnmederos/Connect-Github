@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import EmployeeCard from "@/components/EmployeeCard";
 import EmployeeDialog from "@/components/EmployeeDialog";
+import RolesDialog from "@/components/RolesDialog";
 import type { Employee } from "@shared/schema";
 import {
   AlertDialog,
@@ -18,12 +19,22 @@ import {
 export default function Employees() {
   // TODO: remove mock functionality - replace with real data
   const [employees, setEmployees] = useState<Employee[]>([
-    { id: '1', name: 'Juan Pérez', role: 'Conductor' },
-    { id: '2', name: 'María García', role: 'Ayudante' },
-    { id: '3', name: 'Carlos López', role: 'Conductor' },
+    { id: '1', name: 'Juan Pérez', roles: ['CHOFER'] },
+    { id: '2', name: 'María García', roles: ['PEON', 'AYUDANTE'] },
+    { id: '3', name: 'Carlos López', roles: ['CHOFER', 'OPERARIO'] },
+  ]);
+
+  // TODO: remove mock functionality - allow user to customize
+  const [availableRoles, setAvailableRoles] = useState<string[]>([
+    'CHOFER', 
+    'PEON', 
+    'AYUDANTE', 
+    'OPERARIO', 
+    'SUPERVISOR'
   ]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
@@ -52,7 +63,7 @@ export default function Employees() {
     }
   };
 
-  const handleSave = (employeeData: { name: string; role: string }, id?: string) => {
+  const handleSave = (employeeData: { name: string; roles: string[] }, id?: string) => {
     // TODO: remove mock functionality - implement API call
     if (id) {
       setEmployees(employees.map(e => e.id === id ? { ...e, ...employeeData } : e));
@@ -63,6 +74,10 @@ export default function Employees() {
       };
       setEmployees([...employees, newEmployee]);
     }
+  };
+
+  const handleSaveRoles = (roles: string[]) => {
+    setAvailableRoles(roles);
   };
 
   return (
@@ -78,10 +93,21 @@ export default function Employees() {
                 Gestiona el personal y sus funciones
               </p>
             </div>
-            <Button onClick={handleAdd} className="gap-2" data-testid="button-add-employee">
-              <Plus className="w-4 h-4" />
-              Nuevo Empleado
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setRolesDialogOpen(true)} 
+                variant="outline" 
+                className="gap-2" 
+                data-testid="button-manage-roles"
+              >
+                <Settings className="w-4 h-4" />
+                Gestionar Funciones
+              </Button>
+              <Button onClick={handleAdd} className="gap-2" data-testid="button-add-employee">
+                <Plus className="w-4 h-4" />
+                Nuevo Empleado
+              </Button>
+            </div>
           </div>
 
           {employees.length === 0 ? (
@@ -112,6 +138,14 @@ export default function Employees() {
         onOpenChange={setDialogOpen}
         employee={selectedEmployee}
         onSave={handleSave}
+        availableRoles={availableRoles}
+      />
+
+      <RolesDialog
+        open={rolesDialogOpen}
+        onOpenChange={setRolesDialogOpen}
+        roles={availableRoles}
+        onSave={handleSaveRoles}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
