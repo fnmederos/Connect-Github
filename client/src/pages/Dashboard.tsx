@@ -79,13 +79,12 @@ export default function Dashboard() {
   // Handler para confirmar selección de vehículos
   const handleVehicleSelectionConfirm = (vehicleIds: string[]) => {
     setSelectedVehicleIds(vehicleIds);
-    // Inicializar assignments vacíos para nuevos vehículos
+    // Reconstruir assignments solo para vehículos seleccionados
     setVehicleAssignments(prev => {
-      const updated = { ...prev };
+      const updated: Record<string, AssignmentRow[]> = {};
       vehicleIds.forEach(id => {
-        if (!updated[id]) {
-          updated[id] = [];
-        }
+        // Mantener assignments existentes o inicializar vacío
+        updated[id] = prev[id] || [];
       });
       return updated;
     });

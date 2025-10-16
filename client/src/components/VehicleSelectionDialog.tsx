@@ -125,7 +125,6 @@ export default function VehicleSelectionDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={tempSelected.length === 0}
             data-testid="button-confirm-vehicle-selection"
           >
             Confirmar
