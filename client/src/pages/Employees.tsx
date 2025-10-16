@@ -20,28 +20,22 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Employees() {
-  // TODO: remove mock functionality - replace with real data
-  const [employees, setEmployees] = useState<Employee[]>([
-    { id: '1', name: 'Juan Pérez', roles: ['CHOFER'] },
-    { id: '2', name: 'María García', roles: ['PEON', 'AYUDANTE'] },
-    { id: '3', name: 'Carlos López', roles: ['CHOFER', 'OPERARIO'] },
-  ]);
-
-  // TODO: remove mock functionality - allow user to customize
-  const [availableRoles, setAvailableRoles] = useState<string[]>([
-    'CHOFER', 
-    'PEON', 
-    'AYUDANTE', 
-    'OPERARIO', 
-    'SUPERVISOR'
-  ]);
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+
+  // Fetch employees from API
+  const { data: employees = [] } = useQuery<Employee[]>({
+    queryKey: ['/api/employees'],
+  });
+
+  // Fetch available roles from API
+  const { data: availableRoles = [] } = useQuery<string[]>({
+    queryKey: ['/api/roles'],
+  });
 
   // Query para obtener ausencias del empleado seleccionado
   const { data: absences = [] } = useQuery<EmployeeAbsence[]>({
@@ -103,30 +97,78 @@ export default function Employees() {
     setAvailabilityDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (employeeToDelete) {
-      // TODO: remove mock functionality - implement API call
-      setEmployees(employees.filter(e => e.id !== employeeToDelete));
+  // Mutation to delete employee
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/employees/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete employee');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/absences'] });
       setDeleteDialogOpen(false);
       setEmployeeToDelete(null);
+    },
+  });
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      deleteEmployeeMutation.mutate(employeeToDelete);
     }
   };
+
+  // Mutation to save employee (create or update)
+  const saveEmployeeMutation = useMutation({
+    mutationFn: async ({ data, id }: { data: { name: string; roles: string[] }, id?: string }) => {
+      if (id) {
+        const response = await fetch(`/api/employees/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to update employee');
+        return response.json();
+      } else {
+        const response = await fetch('/api/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to create employee');
+        return response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      setDialogOpen(false);
+    },
+  });
 
   const handleSave = (employeeData: { name: string; roles: string[] }, id?: string) => {
-    // TODO: remove mock functionality - implement API call
-    if (id) {
-      setEmployees(employees.map(e => e.id === id ? { ...e, ...employeeData } : e));
-    } else {
-      const newEmployee: Employee = {
-        id: String(Date.now()),
-        ...employeeData,
-      };
-      setEmployees([...employees, newEmployee]);
-    }
+    saveEmployeeMutation.mutate({ data: employeeData, id });
   };
 
+  // Mutation to save roles
+  const saveRolesMutation = useMutation({
+    mutationFn: async (roles: string[]) => {
+      const response = await fetch('/api/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles }),
+      });
+      if (!response.ok) throw new Error('Failed to save roles');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/roles'] });
+      setRolesDialogOpen(false);
+    },
+  });
+
   const handleSaveRoles = (roles: string[]) => {
-    setAvailableRoles(roles);
+    saveRolesMutation.mutate(roles);
   };
 
   const handleAddAbsence = (employeeId: string, startDate: string, endDate: string, reason: string) => {

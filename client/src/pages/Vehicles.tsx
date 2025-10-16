@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import VehicleCard from "@/components/VehicleCard";
 import VehicleDialog from "@/components/VehicleDialog";
 import type { Vehicle } from "@shared/schema";
@@ -16,17 +18,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Vehicles() {
-  // TODO: remove mock functionality - replace with real data
-  const [vehicles, setVehicles] = useState<Vehicle[]>([
-    { id: '1', name: 'Camión 1', licensePlate: 'ABC-1234' },
-    { id: '2', name: 'Camión 2', licensePlate: 'DEF-5678' },
-    { id: '3', name: 'Furgoneta 1', licensePlate: 'GHI-9012' },
-  ]);
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
+
+  // Fetch vehicles from API
+  const { data: vehicles = [] } = useQuery<Vehicle[]>({
+    queryKey: ['/api/vehicles'],
+  });
 
   const handleAdd = () => {
     setSelectedVehicle(null);
@@ -43,26 +43,56 @@ export default function Vehicles() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (vehicleToDelete) {
-      // TODO: remove mock functionality - implement API call
-      setVehicles(vehicles.filter(v => v.id !== vehicleToDelete));
+  // Mutation to delete vehicle
+  const deleteVehicleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/vehicles/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete vehicle');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
       setDeleteDialogOpen(false);
       setVehicleToDelete(null);
+    },
+  });
+
+  const confirmDelete = () => {
+    if (vehicleToDelete) {
+      deleteVehicleMutation.mutate(vehicleToDelete);
     }
   };
 
+  // Mutation to save vehicle (create or update)
+  const saveVehicleMutation = useMutation({
+    mutationFn: async ({ data, id }: { data: { name: string; licensePlate: string }, id?: string }) => {
+      if (id) {
+        const response = await fetch(`/api/vehicles/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to update vehicle');
+        return response.json();
+      } else {
+        const response = await fetch('/api/vehicles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to create vehicle');
+        return response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
+      setDialogOpen(false);
+    },
+  });
+
   const handleSave = (vehicleData: { name: string; licensePlate: string }, id?: string) => {
-    // TODO: remove mock functionality - implement API call
-    if (id) {
-      setVehicles(vehicles.map(v => v.id === id ? { ...v, ...vehicleData } : v));
-    } else {
-      const newVehicle: Vehicle = {
-        id: String(Date.now()),
-        ...vehicleData,
-      };
-      setVehicles([...vehicles, newVehicle]);
-    }
+    saveVehicleMutation.mutate({ data: vehicleData, id });
   };
 
   return (
