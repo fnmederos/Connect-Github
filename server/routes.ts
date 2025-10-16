@@ -1,9 +1,165 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeAbsenceSchema, insertDailyAssignmentSchema } from "@shared/schema";
+import { 
+  insertEmployeeAbsenceSchema, 
+  insertDailyAssignmentSchema,
+  insertEmployeeSchema,
+  insertVehicleSchema
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Employee routes
+  app.get("/api/employees", async (req, res) => {
+    try {
+      const employees = await storage.getAllEmployees();
+      res.json(employees);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/employees", async (req, res) => {
+    try {
+      const result = insertEmployeeSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const employee = await storage.createEmployee(result.data);
+      res.status(201).json(employee);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/employees/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertEmployeeSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const employee = await storage.updateEmployee(id, result.data);
+      
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      
+      res.json(employee);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/employees/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteEmployee(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Vehicle routes
+  app.get("/api/vehicles", async (req, res) => {
+    try {
+      const vehicles = await storage.getAllVehicles();
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/vehicles", async (req, res) => {
+    try {
+      const result = insertVehicleSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const vehicle = await storage.createVehicle(result.data);
+      res.status(201).json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/vehicles/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertVehicleSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const vehicle = await storage.updateVehicle(id, result.data);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/vehicles/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteVehicle(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Roles routes
+  app.get("/api/roles", async (req, res) => {
+    try {
+      const roles = await storage.getAllRoles();
+      res.json(roles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/roles", async (req, res) => {
+    try {
+      const { roles } = req.body;
+      
+      if (!Array.isArray(roles)) {
+        return res.status(400).json({ message: "Roles must be an array" });
+      }
+      
+      const updatedRoles = await storage.saveRoles(roles);
+      res.json(updatedRoles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Daily Assignments routes
   app.get("/api/daily-assignments", async (req, res) => {
     try {

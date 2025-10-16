@@ -6,7 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Save } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import AssignmentCard from "@/components/AssignmentCard";
 import type { Vehicle, Employee, EmployeeAbsence } from "@shared/schema";
 
@@ -19,26 +21,23 @@ interface AssignmentRow {
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-
-  // TODO: remove mock functionality - replace with real data
-  const mockEmployees: Employee[] = [
-    { id: '1', name: 'Juan Pérez', roles: ['CHOFER'] },
-    { id: '2', name: 'María García', roles: ['PEON'] },
-    { id: '3', name: 'Carlos López', roles: ['CHOFER', 'OPERARIO'] },
-    { id: '4', name: 'Ana Martínez', roles: ['AYUDANTE'] },
-    { id: '5', name: 'Pedro Sánchez', roles: ['OPERARIO'] },
-  ];
-
-  const mockVehicles: Vehicle[] = [
-    { id: '1', name: 'Camión 1', licensePlate: 'ABC-1234' },
-    { id: '2', name: 'Camión 2', licensePlate: 'DEF-5678' },
-    { id: '3', name: 'Furgoneta 1', licensePlate: 'GHI-9012' },
-  ];
-
-  // TODO: remove mock functionality - make these editable by user
-  const availableRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
-
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
+  const { toast } = useToast();
+
+  // Fetch employees from API
+  const { data: employees = [] } = useQuery<Employee[]>({
+    queryKey: ['/api/employees'],
+  });
+
+  // Fetch vehicles from API
+  const { data: vehicles = [] } = useQuery<Vehicle[]>({
+    queryKey: ['/api/vehicles'],
+  });
+
+  // Fetch roles from API
+  const { data: availableRoles = [] } = useQuery<string[]>({
+    queryKey: ['/api/roles'],
+  });
 
   // Query para obtener todas las ausencias
   const { data: allAbsences = [] } = useQuery<EmployeeAbsence[]>({
@@ -66,30 +65,32 @@ export default function Dashboard() {
 
   // Filtrar empleados disponibles según la fecha seleccionada
   const availableEmployees = useMemo(() => {
-    return mockEmployees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
-  }, [mockEmployees, selectedDate, allAbsences]);
+    return employees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
+  }, [employees, selectedDate, allAbsences]);
 
   // Inicializar con 2 filas por defecto para cada vehículo
   useEffect(() => {
-    const initialAssignments: Record<string, AssignmentRow[]> = {};
-    mockVehicles.forEach((vehicle) => {
-      initialAssignments[vehicle.id] = [
-        {
-          id: `${vehicle.id}-1`,
-          role: '',
-          employeeId: '',
-          time: '08:00',
-        },
-        {
-          id: `${vehicle.id}-2`,
-          role: '',
-          employeeId: '',
-          time: '08:00',
-        },
-      ];
-    });
-    setVehicleAssignments(initialAssignments);
-  }, []);
+    if (vehicles.length > 0) {
+      const initialAssignments: Record<string, AssignmentRow[]> = {};
+      vehicles.forEach((vehicle) => {
+        initialAssignments[vehicle.id] = [
+          {
+            id: `${vehicle.id}-1`,
+            role: '',
+            employeeId: '',
+            time: '08:00',
+          },
+          {
+            id: `${vehicle.id}-2`,
+            role: '',
+            employeeId: '',
+            time: '08:00',
+          },
+        ];
+      });
+      setVehicleAssignments(initialAssignments);
+    }
+  }, [vehicles]);
 
   const handleAddRow = (vehicleId: string) => {
     setVehicleAssignments(prev => ({
@@ -134,10 +135,65 @@ export default function Dashboard() {
     }));
   };
 
+  // Mutation para guardar asignaciones
+  const saveAssignmentsMutation = useMutation({
+    mutationFn: async () => {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const assignments = [];
+
+      for (const vehicle of vehicles) {
+        const rows = vehicleAssignments[vehicle.id] || [];
+        
+        // Solo guardar si hay al menos una asignación completa
+        const validRows = rows.filter(row => row.employeeId && row.role);
+        if (validRows.length === 0) continue;
+
+        const assignmentRowsData = validRows.map(row => {
+          const employee = employees.find(e => e.id === row.employeeId);
+          return {
+            employeeId: row.employeeId,
+            employeeName: employee?.name || '',
+            role: row.role,
+            time: row.time
+          };
+        });
+
+        const response = await fetch('/api/daily-assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: dateStr,
+            vehicleId: vehicle.id,
+            vehicleName: vehicle.name,
+            vehicleLicensePlate: vehicle.licensePlate,
+            assignmentRows: JSON.stringify(assignmentRowsData)
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to save assignment');
+        assignments.push(await response.json());
+      }
+
+      return assignments;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/daily-assignments'] });
+      toast({
+        title: "Planificación guardada",
+        description: `La planificación para ${format(selectedDate, "PPP", { locale: es })} se guardó correctamente.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `No se pudo guardar la planificación: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSave = () => {
-    console.log('Saving assignments for date:', selectedDate);
-    console.log('Assignments:', vehicleAssignments);
-    // TODO: remove mock functionality - implement API call
+    saveAssignmentsMutation.mutate();
   };
 
   return (
@@ -170,20 +226,25 @@ export default function Dashboard() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button onClick={handleSave} className="gap-2" data-testid="button-save-assignments">
+              <Button 
+                onClick={handleSave} 
+                className="gap-2" 
+                data-testid="button-save-assignments"
+                disabled={saveAssignmentsMutation.isPending}
+              >
                 <Save className="w-4 h-4" />
-                Guardar Planificación
+                {saveAssignmentsMutation.isPending ? 'Guardando...' : 'Guardar Planificación'}
               </Button>
             </div>
           </div>
 
-          {mockVehicles.length === 0 ? (
+          {vehicles.length === 0 ? (
             <Card className="p-8 text-center">
               <p className="text-muted-foreground">No hay vehículos registrados. Agrega vehículos desde la sección de Vehículos.</p>
             </Card>
           ) : (
             <div className="space-y-4">
-              {mockVehicles.map((vehicle) => (
+              {vehicles.map((vehicle) => (
                 <AssignmentCard
                   key={vehicle.id}
                   vehicle={vehicle}
