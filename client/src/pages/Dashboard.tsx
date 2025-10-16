@@ -3,15 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, Plus } from "lucide-react";
+import { CalendarIcon, Save, Plus, FileText, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import AssignmentCard from "@/components/AssignmentCard";
 import VehicleSelectionDialog from "@/components/VehicleSelectionDialog";
-import type { Vehicle, Employee, EmployeeAbsence } from "@shared/schema";
+import SaveTemplateDialog from "@/components/SaveTemplateDialog";
+import LoadTemplateDialog from "@/components/LoadTemplateDialog";
+import type { Vehicle, Employee, EmployeeAbsence, Template } from "@shared/schema";
 
 interface AssignmentRow {
   id: string;
@@ -25,6 +27,8 @@ export default function Dashboard() {
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
   const { toast } = useToast();
 
   // Fetch employees from API
@@ -50,6 +54,11 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Failed to fetch absences');
       return response.json();
     }
+  });
+
+  // Query para obtener todas las plantillas
+  const { data: templates = [] } = useQuery<Template[]>({
+    queryKey: ['/api/templates'],
   });
 
   // Función para verificar si un empleado está disponible en una fecha
@@ -194,6 +203,107 @@ export default function Dashboard() {
     saveAssignmentsMutation.mutate();
   };
 
+  // Mutación para crear plantilla
+  const createTemplateMutation = useMutation({
+    mutationFn: async (name: string) => {
+      // Preparar los datos de asignación
+      const assignmentData: Record<string, any[]> = {};
+      selectedVehicleIds.forEach(vehicleId => {
+        const rows = vehicleAssignments[vehicleId] || [];
+        assignmentData[vehicleId] = rows.map(row => ({
+          role: row.role,
+          employeeId: row.employeeId,
+          time: row.time
+        }));
+      });
+
+      return await apiRequest('POST', '/api/templates', {
+        name,
+        vehicleIds: selectedVehicleIds,
+        assignmentData: JSON.stringify(assignmentData)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+      toast({
+        title: "Plantilla guardada",
+        description: "La plantilla se guardó correctamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `No se pudo guardar la plantilla: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutación para eliminar plantilla
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      await apiRequest('DELETE', `/api/templates/${templateId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
+      toast({
+        title: "Plantilla eliminada",
+        description: "La plantilla se eliminó correctamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar la plantilla: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Función para guardar plantilla
+  const handleSaveTemplate = (name: string) => {
+    if (selectedVehicleIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar al menos un vehículo para crear una plantilla.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createTemplateMutation.mutate(name);
+  };
+
+  // Función para cargar plantilla
+  const handleLoadTemplate = (template: Template) => {
+    setSelectedVehicleIds(template.vehicleIds);
+    
+    // Parsear los datos de asignación
+    const parsedData = JSON.parse(template.assignmentData);
+    const newAssignments: Record<string, AssignmentRow[]> = {};
+    
+    template.vehicleIds.forEach(vehicleId => {
+      const templateRows = parsedData[vehicleId] || [];
+      newAssignments[vehicleId] = templateRows.map((row: any, index: number) => ({
+        id: `${vehicleId}-${Date.now()}-${index}`,
+        role: row.role,
+        employeeId: row.employeeId,
+        time: row.time
+      }));
+    });
+    
+    setVehicleAssignments(newAssignments);
+    
+    toast({
+      title: "Plantilla cargada",
+      description: `Se cargó la plantilla "${template.name}" correctamente.`,
+    });
+  };
+
+  // Función para eliminar plantilla
+  const handleDeleteTemplate = (templateId: string) => {
+    deleteTemplateMutation.mutate(templateId);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -207,7 +317,7 @@ export default function Dashboard() {
                 Asigna vehículos y personal para las operaciones del día
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2" data-testid="button-select-date">
@@ -237,6 +347,25 @@ export default function Dashboard() {
                     {selectedVehicleIds.length}
                   </span>
                 )}
+              </Button>
+              <Button 
+                onClick={() => setShowLoadTemplateDialog(true)}
+                variant="outline"
+                className="gap-2" 
+                data-testid="button-load-template"
+              >
+                <FolderOpen className="w-4 h-4" />
+                Cargar Plantilla
+              </Button>
+              <Button 
+                onClick={() => setShowSaveTemplateDialog(true)}
+                variant="outline"
+                className="gap-2" 
+                data-testid="button-save-template"
+                disabled={selectedVehicleIds.length === 0}
+              >
+                <FileText className="w-4 h-4" />
+                Guardar como Plantilla
               </Button>
               <Button 
                 onClick={handleSave} 
@@ -283,6 +412,20 @@ export default function Dashboard() {
         vehicles={vehicles}
         selectedVehicleIds={selectedVehicleIds}
         onConfirm={handleVehicleSelectionConfirm}
+      />
+
+      <SaveTemplateDialog
+        open={showSaveTemplateDialog}
+        onOpenChange={setShowSaveTemplateDialog}
+        onSave={handleSaveTemplate}
+      />
+
+      <LoadTemplateDialog
+        open={showLoadTemplateDialog}
+        onOpenChange={setShowLoadTemplateDialog}
+        templates={templates}
+        onLoad={handleLoadTemplate}
+        onDelete={handleDeleteTemplate}
       />
     </div>
   );
