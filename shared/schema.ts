@@ -36,6 +36,17 @@ export const employeeAbsences = pgTable("employee_absences", {
   reason: text("reason").notNull(),
 });
 
+// Templates for reusable daily planning configurations
+export const templates = pgTable("templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  vehicleIds: text("vehicle_ids").array().notNull(),
+  // Store complete assignment configuration as JSON
+  // Format: { [vehicleId]: [{ employeeId, employeeName, role, time }] }
+  assignmentData: text("assignment_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
 export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).omit({ 
@@ -43,6 +54,10 @@ export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).
   createdAt: true 
 });
 export const insertEmployeeAbsenceSchema = createInsertSchema(employeeAbsences).omit({ id: true });
+export const insertTemplateSchema = createInsertSchema(templates).omit({ 
+  id: true, 
+  createdAt: true 
+});
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
@@ -55,6 +70,9 @@ export type DailyAssignment = typeof dailyAssignments.$inferSelect;
 
 export type InsertEmployeeAbsence = z.infer<typeof insertEmployeeAbsenceSchema>;
 export type EmployeeAbsence = typeof employeeAbsences.$inferSelect;
+
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = typeof templates.$inferSelect;
 
 // Helper type for assignment row data
 export interface AssignmentRowData {
