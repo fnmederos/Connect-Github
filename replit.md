@@ -173,6 +173,14 @@ DELETE /api/roles/:name           - Delete role
 
 ## Recent Changes (October 2025)
 
+### Dashboard Workflow Update (Latest)
+- **Manual Vehicle Selection**: Dashboard no longer shows all vehicles automatically
+- **"Ingresar Vehículos" Button**: New workflow - user selects which vehicles will operate each day
+- **Vehicle Selection Dialog**: Multi-select interface with checkboxes, "Select All", and "Deselect All" options
+- **Manual Row Creation**: Assignment rows are no longer auto-initialized - user adds them as needed
+- **Dynamic Selection**: Users can change vehicle selection at any time, clearing or adding vehicles
+- **State Management**: Assignments for deselected vehicles are properly cleaned up
+
 ### History Feature Implementation
 - **New Page**: Added History page (`/history`) for viewing saved daily assignments
 - **Data Structure**: Implemented denormalized `dailyAssignments` table optimized for future Excel export
@@ -183,6 +191,6 @@ DELETE /api/roles/:name           - Delete role
 ### Technical Implementation
 - Created `POST /api/daily-assignments` endpoint to save daily plans
 - Created `GET /api/daily-assignments` endpoint to retrieve historical data
-- Fixed Dashboard bug: vehicle assignments no longer reset on data refetch
-- Improved vehicle initialization: new vehicles automatically get default assignment rows
-- End-to-end tested: employee creation → vehicle creation → assignment → save → history view
+- Implemented VehicleSelectionDialog component with proper state management
+- Dashboard state correctly rebuilds when vehicle selection changes
+- End-to-end tested: vehicle selection → manual assignment creation → save → history view → deselection flow
