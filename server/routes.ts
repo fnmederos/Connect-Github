@@ -1,9 +1,58 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeAbsenceSchema } from "@shared/schema";
+import { insertEmployeeAbsenceSchema, insertDailyAssignmentSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Daily Assignments routes
+  app.get("/api/daily-assignments", async (req, res) => {
+    try {
+      const date = req.query.date as string | undefined;
+      
+      if (date) {
+        const assignments = await storage.getDailyAssignmentsByDate(date);
+        res.json(assignments);
+      } else {
+        // Get all assignments (for history view)
+        const assignments = await storage.getAllDailyAssignments();
+        res.json(assignments);
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/daily-assignments", async (req, res) => {
+    try {
+      const result = insertDailyAssignmentSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const assignment = await storage.createDailyAssignment(result.data);
+      res.status(201).json(assignment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/daily-assignments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteDailyAssignment(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Employee Absences routes
   app.get("/api/absences", async (req, res) => {
     try {
