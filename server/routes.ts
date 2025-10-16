@@ -5,7 +5,8 @@ import {
   insertEmployeeAbsenceSchema, 
   insertDailyAssignmentSchema,
   insertEmployeeSchema,
-  insertVehicleSchema
+  insertVehicleSchema,
+  insertTemplateSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -252,6 +253,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(204).send();
       } else {
         res.status(404).json({ message: "Absence not found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Template routes
+  app.get("/api/templates", async (req, res) => {
+    try {
+      const templates = await storage.getAllTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/templates", async (req, res) => {
+    try {
+      const result = insertTemplateSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const template = await storage.createTemplate(result.data);
+      res.status(201).json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteTemplate(id);
+      
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ message: "Template not found" });
       }
     } catch (error: any) {
       res.status(500).json({ message: error.message });
