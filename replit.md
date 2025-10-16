@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 - TanStack Query for server state and caching
 - Local state with React hooks for UI interactions
 - Query invalidation for optimistic updates
-- Currently using mock data with TODO markers for backend integration
+- Fully integrated with backend API endpoints
 
 **Design System:**
 - Material Design + Linear-inspired minimalism
@@ -72,9 +72,26 @@ Preferred communication style: Simple, everyday language.
 
 **API Endpoints:**
 ```
+GET    /api/employees             - Get all employees
+POST   /api/employees             - Create new employee
+PATCH  /api/employees/:id         - Update employee
+DELETE /api/employees/:id         - Delete employee
+
+GET    /api/vehicles              - Get all vehicles
+POST   /api/vehicles              - Create new vehicle
+PATCH  /api/vehicles/:id          - Update vehicle
+DELETE /api/vehicles/:id          - Delete vehicle
+
 GET    /api/absences              - Get all absences or by employeeId
 POST   /api/absences              - Create new absence
 DELETE /api/absences/:id          - Delete absence
+
+GET    /api/daily-assignments     - Get all daily assignments
+POST   /api/daily-assignments     - Create new daily assignment
+
+GET    /api/roles                 - Get available roles
+POST   /api/roles                 - Create new role
+DELETE /api/roles/:name           - Delete role
 ```
 
 **Rationale:** The storage abstraction allows easy transition from in-memory to database storage. The shared schema approach ensures type safety across the full stack. Express was chosen for its simplicity and extensive middleware ecosystem.
@@ -84,16 +101,21 @@ DELETE /api/absences/:id          - Delete absence
 **Tables:**
 - `employees`: id, name, roles[] - Employee records with multi-role support
 - `vehicles`: id, name, licensePlate - Vehicle fleet management
-- `assignments`: id, date, vehicleId, employeeIds[], details - Daily assignments
 - `employeeAbsences`: id, employeeId, startDate, endDate, reason - Absence tracking
+- `dailyAssignments`: id, date, vehicleId, vehicleName, vehicleLicensePlate, assignmentRows[] - Historical daily assignments with denormalized structure for Excel export
+- `roles`: name (primary key) - Available employee roles/functions
 
 **Key Design Decisions:**
 - UUID primary keys for distributed systems compatibility
-- Array types for roles and employeeIds (PostgreSQL native support)
+- Array types for roles and assignmentRows (PostgreSQL native support)
 - Text dates for flexibility (ISO format strings)
 - Shared types between frontend and backend via Drizzle inference
+- **Denormalized structure in dailyAssignments**: Vehicle snapshots (name, plate) and complete employee details stored directly for simplified Excel export and historical accuracy
 
-**Rationale:** The schema is normalized while maintaining simplicity. Array fields avoid junction tables for many-to-many relationships where appropriate. The shared type system eliminates duplication and ensures consistency.
+**Rationale:** The schema balances normalization with practical needs. The `dailyAssignments` table uses a denormalized approach - storing vehicle and employee details as snapshots rather than foreign keys. This design choice prioritizes:
+1. **Excel Export Simplicity**: All data needed for reporting is in one table
+2. **Historical Accuracy**: Changes to vehicles/employees don't affect past assignments
+3. **Query Performance**: No joins needed to display complete assignment history
 
 ### Build & Deployment
 
@@ -149,5 +171,18 @@ DELETE /api/absences/:id          - Delete absence
 ### Session Management
 - **connect-pg-simple**: PostgreSQL session store for Express (configured but not actively used in current implementation)
 
-**Note on Current State:**
-The application currently uses in-memory storage with mock data. The database infrastructure (Drizzle, Neon) is configured but not yet connected. TODO comments throughout the codebase indicate where backend integration is needed.
+## Recent Changes (October 2025)
+
+### History Feature Implementation
+- **New Page**: Added History page (`/history`) for viewing saved daily assignments
+- **Data Structure**: Implemented denormalized `dailyAssignments` table optimized for future Excel export
+- **Dashboard Integration**: "Guardar Planificación" button now saves complete daily assignments to backend
+- **Day Details View**: Click on any history card to see full breakdown of vehicle assignments, personnel, and schedules
+- **API Migration**: All pages (Employees, Vehicles, Dashboard) now use real API endpoints instead of mock data
+
+### Technical Implementation
+- Created `POST /api/daily-assignments` endpoint to save daily plans
+- Created `GET /api/daily-assignments` endpoint to retrieve historical data
+- Fixed Dashboard bug: vehicle assignments no longer reset on data refetch
+- Improved vehicle initialization: new vehicles automatically get default assignment rows
+- End-to-end tested: employee creation → vehicle creation → assignment → save → history view
