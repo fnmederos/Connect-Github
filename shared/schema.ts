@@ -15,12 +15,17 @@ export const vehicles = pgTable("vehicles", {
   licensePlate: text("license_plate").notNull(),
 });
 
-export const assignments = pgTable("assignments", {
+// Daily assignment for a vehicle - structured for Excel export
+export const dailyAssignments = pgTable("daily_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  date: text("date").notNull(),
+  date: text("date").notNull(), // ISO date string (YYYY-MM-DD)
   vehicleId: varchar("vehicle_id").notNull(),
-  employeeIds: text("employee_ids").array().notNull(),
-  details: text("details"),
+  vehicleName: text("vehicle_name").notNull(),
+  vehicleLicensePlate: text("vehicle_license_plate").notNull(),
+  // Store assignment rows as JSON for easy Excel export
+  // Format: [{ employeeId, employeeName, role, time }]
+  assignmentRows: text("assignment_rows").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const employeeAbsences = pgTable("employee_absences", {
@@ -33,7 +38,10 @@ export const employeeAbsences = pgTable("employee_absences", {
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
-export const insertAssignmentSchema = createInsertSchema(assignments).omit({ id: true });
+export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).omit({ 
+  id: true, 
+  createdAt: true 
+});
 export const insertEmployeeAbsenceSchema = createInsertSchema(employeeAbsences).omit({ id: true });
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
@@ -42,8 +50,16 @@ export type Employee = typeof employees.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type Vehicle = typeof vehicles.$inferSelect;
 
-export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
-export type Assignment = typeof assignments.$inferSelect;
+export type InsertDailyAssignment = z.infer<typeof insertDailyAssignmentSchema>;
+export type DailyAssignment = typeof dailyAssignments.$inferSelect;
 
 export type InsertEmployeeAbsence = z.infer<typeof insertEmployeeAbsenceSchema>;
 export type EmployeeAbsence = typeof employeeAbsences.$inferSelect;
+
+// Helper type for assignment row data
+export interface AssignmentRowData {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  time: string;
+}
