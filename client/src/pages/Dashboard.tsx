@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
   const { toast } = useToast();
+  const isInitializedRef = useRef(false);
 
   // Fetch employees from API
   const { data: employees = [] } = useQuery<Employee[]>({
@@ -68,27 +69,35 @@ export default function Dashboard() {
     return employees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
   }, [employees, selectedDate, allAbsences]);
 
-  // Inicializar con 2 filas por defecto para cada vehículo
+  // Inicializar con 2 filas por defecto para vehículos nuevos
   useEffect(() => {
     if (vehicles.length > 0) {
-      const initialAssignments: Record<string, AssignmentRow[]> = {};
-      vehicles.forEach((vehicle) => {
-        initialAssignments[vehicle.id] = [
-          {
-            id: `${vehicle.id}-1`,
-            role: '',
-            employeeId: '',
-            time: '08:00',
-          },
-          {
-            id: `${vehicle.id}-2`,
-            role: '',
-            employeeId: '',
-            time: '08:00',
-          },
-        ];
+      setVehicleAssignments(prev => {
+        const updated = { ...prev };
+        let hasChanges = false;
+        
+        vehicles.forEach((vehicle) => {
+          if (!updated[vehicle.id]) {
+            updated[vehicle.id] = [
+              {
+                id: `${vehicle.id}-1`,
+                role: '',
+                employeeId: '',
+                time: '08:00',
+              },
+              {
+                id: `${vehicle.id}-2`,
+                role: '',
+                employeeId: '',
+                time: '08:00',
+              },
+            ];
+            hasChanges = true;
+          }
+        });
+        
+        return hasChanges ? updated : prev;
       });
-      setVehicleAssignments(initialAssignments);
     }
   }, [vehicles]);
 
