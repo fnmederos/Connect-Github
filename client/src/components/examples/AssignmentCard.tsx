@@ -14,23 +14,49 @@ export default function AssignmentCardExample() {
     { id: '3', name: 'Carlos López', role: 'Conductor' },
   ];
 
-  const [selectedEmployees, setSelectedEmployees] = useState([availableEmployees[0]]);
-  const [details, setDetails] = useState('');
+  const availableRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO'];
+
+  const [assignments, setAssignments] = useState([
+    { id: '1', role: 'CHOFER', employeeId: '1', time: '08:00' },
+    { id: '2', role: 'PEON', employeeId: '2', time: '08:00' },
+  ]);
+
+  const handleAddRow = () => {
+    setAssignments([...assignments, {
+      id: String(Date.now()),
+      role: '',
+      employeeId: '',
+      time: '08:00',
+    }]);
+  };
+
+  const handleRemoveRow = (rowId: string) => {
+    setAssignments(assignments.filter(a => a.id !== rowId));
+  };
+
+  const handleUpdateRole = (rowId: string, role: string) => {
+    setAssignments(assignments.map(a => a.id === rowId ? { ...a, role } : a));
+  };
+
+  const handleUpdateEmployee = (rowId: string, employeeId: string) => {
+    setAssignments(assignments.map(a => a.id === rowId ? { ...a, employeeId } : a));
+  };
+
+  const handleUpdateTime = (rowId: string, time: string) => {
+    setAssignments(assignments.map(a => a.id === rowId ? { ...a, time } : a));
+  };
 
   return (
     <AssignmentCard
       vehicle={vehicle}
-      selectedEmployees={selectedEmployees}
       availableEmployees={availableEmployees}
-      details={details}
-      onAddEmployee={(id) => {
-        const emp = availableEmployees.find(e => e.id === id);
-        if (emp) setSelectedEmployees([...selectedEmployees, emp]);
-      }}
-      onRemoveEmployee={(id) => {
-        setSelectedEmployees(selectedEmployees.filter(e => e.id !== id));
-      }}
-      onDetailsChange={setDetails}
+      availableRoles={availableRoles}
+      assignments={assignments}
+      onAddRow={handleAddRow}
+      onRemoveRow={handleRemoveRow}
+      onUpdateRole={handleUpdateRole}
+      onUpdateEmployee={handleUpdateEmployee}
+      onUpdateTime={handleUpdateTime}
     />
   );
 }

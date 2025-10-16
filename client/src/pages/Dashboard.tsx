@@ -9,6 +9,13 @@ import { es } from "date-fns/locale";
 import AssignmentCard from "@/components/AssignmentCard";
 import type { Vehicle, Employee } from "@shared/schema";
 
+interface AssignmentRow {
+  id: string;
+  role: string;
+  employeeId: string;
+  time: string;
+}
+
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -27,47 +34,63 @@ export default function Dashboard() {
     { id: '3', name: 'Furgoneta 1', licensePlate: 'GHI-9012' },
   ];
 
-  const [assignments, setAssignments] = useState<Record<string, { employees: string[], details: string }>>({});
+  // TODO: remove mock functionality - make these editable by user
+  const availableRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
 
-  const handleAddEmployee = (vehicleId: string, employeeId: string) => {
-    setAssignments(prev => ({
+  const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
+
+  const handleAddRow = (vehicleId: string) => {
+    setVehicleAssignments(prev => ({
       ...prev,
-      [vehicleId]: {
-        employees: [...(prev[vehicleId]?.employees || []), employeeId],
-        details: prev[vehicleId]?.details || '',
-      }
+      [vehicleId]: [
+        ...(prev[vehicleId] || []),
+        {
+          id: String(Date.now()),
+          role: '',
+          employeeId: '',
+          time: '08:00',
+        }
+      ]
     }));
   };
 
-  const handleRemoveEmployee = (vehicleId: string, employeeId: string) => {
-    setAssignments(prev => ({
+  const handleRemoveRow = (vehicleId: string, rowId: string) => {
+    setVehicleAssignments(prev => ({
       ...prev,
-      [vehicleId]: {
-        employees: (prev[vehicleId]?.employees || []).filter(id => id !== employeeId),
-        details: prev[vehicleId]?.details || '',
-      }
+      [vehicleId]: (prev[vehicleId] || []).filter(a => a.id !== rowId)
     }));
   };
 
-  const handleDetailsChange = (vehicleId: string, details: string) => {
-    setAssignments(prev => ({
+  const handleUpdateRole = (vehicleId: string, rowId: string, role: string) => {
+    setVehicleAssignments(prev => ({
       ...prev,
-      [vehicleId]: {
-        employees: prev[vehicleId]?.employees || [],
-        details,
-      }
+      [vehicleId]: (prev[vehicleId] || []).map(a => a.id === rowId ? { ...a, role } : a)
+    }));
+  };
+
+  const handleUpdateEmployee = (vehicleId: string, rowId: string, employeeId: string) => {
+    setVehicleAssignments(prev => ({
+      ...prev,
+      [vehicleId]: (prev[vehicleId] || []).map(a => a.id === rowId ? { ...a, employeeId } : a)
+    }));
+  };
+
+  const handleUpdateTime = (vehicleId: string, rowId: string, time: string) => {
+    setVehicleAssignments(prev => ({
+      ...prev,
+      [vehicleId]: (prev[vehicleId] || []).map(a => a.id === rowId ? { ...a, time } : a)
     }));
   };
 
   const handleSave = () => {
     console.log('Saving assignments for date:', selectedDate);
-    console.log('Assignments:', assignments);
+    console.log('Assignments:', vehicleAssignments);
     // TODO: remove mock functionality - implement API call
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
@@ -107,26 +130,21 @@ export default function Dashboard() {
               <p className="text-muted-foreground">No hay vehículos registrados. Agrega vehículos desde la sección de Vehículos.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {mockVehicles.map((vehicle) => {
-                const assignment = assignments[vehicle.id] || { employees: [], details: '' };
-                const selectedEmployees = mockEmployees.filter(emp => 
-                  assignment.employees.includes(emp.id)
-                );
-
-                return (
-                  <AssignmentCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    selectedEmployees={selectedEmployees}
-                    availableEmployees={mockEmployees}
-                    details={assignment.details}
-                    onAddEmployee={(empId) => handleAddEmployee(vehicle.id, empId)}
-                    onRemoveEmployee={(empId) => handleRemoveEmployee(vehicle.id, empId)}
-                    onDetailsChange={(details) => handleDetailsChange(vehicle.id, details)}
-                  />
-                );
-              })}
+            <div className="space-y-4">
+              {mockVehicles.map((vehicle) => (
+                <AssignmentCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  availableEmployees={mockEmployees}
+                  availableRoles={availableRoles}
+                  assignments={vehicleAssignments[vehicle.id] || []}
+                  onAddRow={() => handleAddRow(vehicle.id)}
+                  onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
+                  onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
+                  onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
+                  onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+                />
+              ))}
             </div>
           )}
         </div>
