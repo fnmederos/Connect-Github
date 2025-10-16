@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save } from "lucide-react";
+import { CalendarIcon, Save, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import AssignmentCard from "@/components/AssignmentCard";
+import VehicleSelectionDialog from "@/components/VehicleSelectionDialog";
 import type { Vehicle, Employee, EmployeeAbsence } from "@shared/schema";
 
 interface AssignmentRow {
@@ -22,8 +23,9 @@ interface AssignmentRow {
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
+  const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const { toast } = useToast();
-  const isInitializedRef = useRef(false);
 
   // Fetch employees from API
   const { data: employees = [] } = useQuery<Employee[]>({
@@ -69,37 +71,25 @@ export default function Dashboard() {
     return employees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
   }, [employees, selectedDate, allAbsences]);
 
-  // Inicializar con 2 filas por defecto para vehículos nuevos
-  useEffect(() => {
-    if (vehicles.length > 0) {
-      setVehicleAssignments(prev => {
-        const updated = { ...prev };
-        let hasChanges = false;
-        
-        vehicles.forEach((vehicle) => {
-          if (!updated[vehicle.id]) {
-            updated[vehicle.id] = [
-              {
-                id: `${vehicle.id}-1`,
-                role: '',
-                employeeId: '',
-                time: '08:00',
-              },
-              {
-                id: `${vehicle.id}-2`,
-                role: '',
-                employeeId: '',
-                time: '08:00',
-              },
-            ];
-            hasChanges = true;
-          }
-        });
-        
-        return hasChanges ? updated : prev;
+  // Calcular vehículos seleccionados basado en IDs
+  const selectedVehicles = useMemo(() => {
+    return vehicles.filter(v => selectedVehicleIds.includes(v.id));
+  }, [vehicles, selectedVehicleIds]);
+
+  // Handler para confirmar selección de vehículos
+  const handleVehicleSelectionConfirm = (vehicleIds: string[]) => {
+    setSelectedVehicleIds(vehicleIds);
+    // Inicializar assignments vacíos para nuevos vehículos
+    setVehicleAssignments(prev => {
+      const updated = { ...prev };
+      vehicleIds.forEach(id => {
+        if (!updated[id]) {
+          updated[id] = [];
+        }
       });
-    }
-  }, [vehicles]);
+      return updated;
+    });
+  };
 
   const handleAddRow = (vehicleId: string) => {
     setVehicleAssignments(prev => ({
@@ -150,7 +140,7 @@ export default function Dashboard() {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const assignments = [];
 
-      for (const vehicle of vehicles) {
+      for (const vehicle of selectedVehicles) {
         const rows = vehicleAssignments[vehicle.id] || [];
         
         // Solo guardar si hay al menos una asignación completa
@@ -236,10 +226,24 @@ export default function Dashboard() {
                 </PopoverContent>
               </Popover>
               <Button 
+                onClick={() => setShowVehicleDialog(true)}
+                variant="outline"
+                className="gap-2" 
+                data-testid="button-add-vehicles"
+              >
+                <Plus className="w-4 h-4" />
+                Ingresar Vehículos
+                {selectedVehicleIds.length > 0 && (
+                  <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                    {selectedVehicleIds.length}
+                  </span>
+                )}
+              </Button>
+              <Button 
                 onClick={handleSave} 
                 className="gap-2" 
                 data-testid="button-save-assignments"
-                disabled={saveAssignmentsMutation.isPending}
+                disabled={saveAssignmentsMutation.isPending || selectedVehicleIds.length === 0}
               >
                 <Save className="w-4 h-4" />
                 {saveAssignmentsMutation.isPending ? 'Guardando...' : 'Guardar Planificación'}
@@ -247,13 +251,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {vehicles.length === 0 ? (
+          {selectedVehicleIds.length === 0 ? (
             <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No hay vehículos registrados. Agrega vehículos desde la sección de Vehículos.</p>
+              <p className="text-muted-foreground">
+                No hay vehículos seleccionados. Haz clic en "Ingresar Vehículos" para comenzar.
+              </p>
             </Card>
           ) : (
             <div className="space-y-4">
-              {vehicles.map((vehicle) => (
+              {selectedVehicles.map((vehicle) => (
                 <AssignmentCard
                   key={vehicle.id}
                   vehicle={vehicle}
@@ -271,6 +277,14 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <VehicleSelectionDialog
+        open={showVehicleDialog}
+        onOpenChange={setShowVehicleDialog}
+        vehicles={vehicles}
+        selectedVehicleIds={selectedVehicleIds}
+        onConfirm={handleVehicleSelectionConfirm}
+      />
     </div>
   );
 }
