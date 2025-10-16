@@ -6,8 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import Employees from "@/pages/Employees";
 import Vehicles from "@/pages/Vehicles";
+import History from "@/pages/History";
 import ThemeToggle from "@/components/ThemeToggle";
-import { LayoutDashboard, Users, Truck } from "lucide-react";
+import { LayoutDashboard, Users, Truck, History as HistoryIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/employees" component={Employees} />
       <Route path="/vehicles" component={Vehicles} />
+      <Route path="/history" component={History} />
     </Switch>
   );
 }
@@ -27,6 +29,7 @@ function App() {
     { path: "/", label: "Dashboard", icon: LayoutDashboard, testId: "link-dashboard" },
     { path: "/employees", label: "Empleados", icon: Users, testId: "link-employees" },
     { path: "/vehicles", label: "Vehículos", icon: Truck, testId: "link-vehicles" },
+    { path: "/history", label: "Historial", icon: HistoryIcon, testId: "link-history" },
   ];
 
   return (
