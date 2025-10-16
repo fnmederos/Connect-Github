@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -39,13 +39,35 @@ export default function Dashboard() {
 
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
 
+  // Inicializar con 2 filas por defecto para cada vehículo
+  useEffect(() => {
+    const initialAssignments: Record<string, AssignmentRow[]> = {};
+    mockVehicles.forEach((vehicle) => {
+      initialAssignments[vehicle.id] = [
+        {
+          id: `${vehicle.id}-1`,
+          role: '',
+          employeeId: '',
+          time: '08:00',
+        },
+        {
+          id: `${vehicle.id}-2`,
+          role: '',
+          employeeId: '',
+          time: '08:00',
+        },
+      ];
+    });
+    setVehicleAssignments(initialAssignments);
+  }, []);
+
   const handleAddRow = (vehicleId: string) => {
     setVehicleAssignments(prev => ({
       ...prev,
       [vehicleId]: [
         ...(prev[vehicleId] || []),
         {
-          id: String(Date.now()),
+          id: `${vehicleId}-${Date.now()}`,
           role: '',
           employeeId: '',
           time: '08:00',

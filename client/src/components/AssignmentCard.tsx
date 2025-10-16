@@ -42,9 +42,9 @@ export default function AssignmentCard({
   onUpdateTime,
 }: AssignmentCardProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[200px_150px_1fr_1fr_auto] gap-4 items-start" data-testid={`card-assignment-${vehicle.id}`}>
-      {/* Caja 1: Vehículo */}
-      <Card className="p-4 h-full">
+    <Card className="p-6" data-testid={`card-assignment-${vehicle.id}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-[200px_150px_1fr_1fr] gap-4 mb-4">
+        {/* Encabezado: Vehículo */}
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-md bg-chart-2/10 flex items-center justify-center flex-shrink-0">
             <Truck className="w-5 h-5 text-chart-2" />
@@ -58,114 +58,89 @@ export default function AssignmentCard({
             </p>
           </div>
         </div>
-      </Card>
 
-      {/* Caja 2: Horarios */}
-      <Card className="p-4 h-full">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground mb-3">Horario</p>
-          {assignments.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">-</p>
-          ) : (
-            <div className="space-y-2">
-              {assignments.map((row) => (
-                <Input
-                  key={row.id}
-                  type="time"
-                  value={row.time}
-                  onChange={(e) => onUpdateTime(row.id, e.target.value)}
-                  className="h-9 text-sm"
-                  data-testid={`input-time-${row.id}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </Card>
+        {/* Encabezados de columnas */}
+        <p className="text-xs font-medium text-muted-foreground">Horario</p>
+        <p className="text-xs font-medium text-muted-foreground">Función</p>
+        <p className="text-xs font-medium text-muted-foreground">Personal</p>
+      </div>
 
-      {/* Caja 3: Funciones */}
-      <Card className="p-4 h-full">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground mb-3">Función</p>
-          {assignments.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">Sin asignaciones</p>
-          ) : (
-            <div className="space-y-2">
-              {assignments.map((row) => (
-                <Select
-                  key={row.id}
-                  value={row.role}
-                  onValueChange={(value) => onUpdateRole(row.id, value)}
-                >
-                  <SelectTrigger className="h-9" data-testid={`select-role-${row.id}`}>
-                    <SelectValue placeholder="Seleccionar función" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableRoles.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
-            </div>
-          )}
-        </div>
-      </Card>
+      {/* Filas de asignaciones */}
+      <div className="space-y-2">
+        {assignments.map((row) => (
+          <div key={row.id} className="grid grid-cols-1 lg:grid-cols-[200px_150px_1fr_1fr_auto] gap-4 items-center">
+            {/* Espacio vacío para alinear con el vehículo */}
+            <div></div>
+            
+            {/* Horario */}
+            <Input
+              type="time"
+              value={row.time}
+              onChange={(e) => onUpdateTime(row.id, e.target.value)}
+              className="h-9 text-sm"
+              data-testid={`input-time-${row.id}`}
+            />
 
-      {/* Caja 4: Personal */}
-      <Card className="p-4 h-full">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground mb-3">Personal</p>
-          {assignments.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">Sin asignaciones</p>
-          ) : (
-            <div className="space-y-2">
-              {assignments.map((row) => (
-                <Select
-                  key={row.id}
-                  value={row.employeeId}
-                  onValueChange={(value) => onUpdateEmployee(row.id, value)}
-                >
-                  <SelectTrigger className="h-9" data-testid={`select-employee-${row.id}`}>
-                    <SelectValue placeholder="Seleccionar personal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableEmployees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ))}
-            </div>
-          )}
-        </div>
-      </Card>
+            {/* Función */}
+            <Select
+              value={row.role}
+              onValueChange={(value) => onUpdateRole(row.id, value)}
+            >
+              <SelectTrigger className="h-9" data-testid={`select-role-${row.id}`}>
+                <SelectValue placeholder="Seleccionar función" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableRoles.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-      {/* Botones de acción */}
-      <div className="flex flex-col gap-2 pt-7">
+            {/* Personal */}
+            <Select
+              value={row.employeeId}
+              onValueChange={(value) => onUpdateEmployee(row.id, value)}
+            >
+              <SelectTrigger className="h-9" data-testid={`select-employee-${row.id}`}>
+                <SelectValue placeholder="Seleccionar personal" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEmployees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Botón eliminar */}
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => onRemoveRow(row.id)}
+              data-testid={`button-remove-row-${row.id}`}
+            >
+              <X className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      {/* Botón agregar */}
+      <div className="mt-3 pl-[200px] lg:pl-[200px]">
         <Button
-          size="icon"
           variant="outline"
+          size="sm"
           onClick={onAddRow}
+          className="gap-2 h-8"
           data-testid={`button-add-row-${vehicle.id}`}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3 h-3" />
+          Agregar línea
         </Button>
-        {assignments.length > 0 && (
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => onRemoveRow(assignments[assignments.length - 1].id)}
-            data-testid={`button-remove-row-${vehicle.id}`}
-          >
-            <X className="w-4 h-4 text-destructive" />
-          </Button>
-        )}
       </div>
-    </div>
+    </Card>
   );
 }
