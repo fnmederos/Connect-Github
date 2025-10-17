@@ -65,6 +65,12 @@ Preferred communication style: Simple, everyday language.
 - **Comments and Depot Features:** Each vehicle card has a dedicated comments textarea. A separate DEPOSITO section allows scheduling warehouse personnel with multiple time slots, employee assignments, and a special toggleable ENCARGADO (Supervisor) position.
 - **Excel Export:** Functionality to export historical daily assignments within a selected date range to an .xlsx file, including vehicle, driver, and assistant details. User feedback provided when no data matches the selected range.
 - **Vehicle Reordering:** Dashboard vehicle cards can be reordered using up/down arrow buttons with persistent order preservation.
+- **Role-Based Filtering:** Assignment dropdowns filter employees by their assigned roles, showing only employees who have the specific role required for each position. Implemented with intelligent filtering that respects employee absence status and role assignments.
+- **Duplicate Prevention System:** Multi-layered protection against duplicate employee assignments:
+  - **UI Prevention:** Dropdown filters automatically exclude employees already assigned to other vehicles/roles, except for the current row's employee.
+  - **Automatic Reconciliation:** Background process detects and clears invalid assignments when employees become unavailable or lose required roles.
+  - **Template Sanitization:** When loading templates, duplicates are automatically detected and removed, with user notification via toast messages.
+  - **Continuous Validation:** System monitors availability changes and automatically reconciles assignments in real-time.
 
 ## External Dependencies
 
