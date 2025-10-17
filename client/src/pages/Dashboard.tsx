@@ -249,13 +249,13 @@ export default function Dashboard() {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const assignments = [];
 
-      // Si no hay vehículos seleccionados, pero hay comentarios o DEPOSITO, guardar solo eso
+      // Si no hay vehículos seleccionados, pero hay DEPOSITO, guardar solo eso
       if (selectedVehicles.length === 0) {
         // No hay vehículos, verificar si hay algo que guardar
-        if (!comments && depositoTimeSlots.length === 0) {
+        if (depositoTimeSlots.length === 0) {
           throw new Error('No hay datos para guardar');
         }
-        // Guardar solo comentarios y DEPOSITO sin vehículos (crear un registro especial)
+        // Guardar solo DEPOSITO sin vehículos (crear un registro especial)
         const response = await fetch('/api/daily-assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -265,7 +265,7 @@ export default function Dashboard() {
             vehicleName: 'Sin Vehículos',
             vehicleLicensePlate: '',
             assignmentRows: JSON.stringify([]),
-            comments: comments,
+            comments: '',
             depositoAssignments: JSON.stringify(depositoTimeSlots)
           }),
         });
@@ -297,7 +297,7 @@ export default function Dashboard() {
               vehicleName: vehicle.name,
               vehicleLicensePlate: vehicle.licensePlate,
               assignmentRows: JSON.stringify(assignmentRowsData),
-              comments: comments,
+              comments: vehicleComments[vehicle.id] || '',
               depositoAssignments: JSON.stringify(depositoTimeSlots)
             }),
           });
@@ -343,11 +343,17 @@ export default function Dashboard() {
         }));
       });
 
+      // Preparar comentarios por vehículo
+      const commentsData: Record<string, string> = {};
+      selectedVehicleIds.forEach(vehicleId => {
+        commentsData[vehicleId] = vehicleComments[vehicleId] || '';
+      });
+
       return await apiRequest('POST', '/api/templates', {
         name,
         vehicleIds: selectedVehicleIds,
         assignmentData: JSON.stringify(assignmentData),
-        comments: comments,
+        comments: JSON.stringify(commentsData),
         depositoAssignments: JSON.stringify(depositoTimeSlots)
       });
     },
@@ -421,8 +427,15 @@ export default function Dashboard() {
     
     setVehicleAssignments(newAssignments);
     
-    // Cargar comentarios y DEPOSITO
-    setComments(template.comments || '');
+    // Cargar comentarios por vehículo y DEPOSITO
+    try {
+      const parsedComments = JSON.parse(template.comments || '{}');
+      setVehicleComments(parsedComments);
+    } catch {
+      // Si comments es un string simple (backward compatibility), establecer vacío
+      setVehicleComments({});
+    }
+    
     const depositoData = template.depositoAssignments ? JSON.parse(template.depositoAssignments) : [];
     setDepositoTimeSlots(depositoData);
     
@@ -539,17 +552,6 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Comentarios</h3>
-              <Textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Escribe aquí tus comentarios para este día..."
-                className="min-h-[120px] text-base"
-                data-testid="textarea-comments"
-              />
-            </Card>
 
             <DepositoSection
               timeSlots={depositoTimeSlots}
