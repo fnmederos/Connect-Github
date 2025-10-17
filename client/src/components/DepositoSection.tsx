@@ -57,8 +57,8 @@ export default function DepositoSection({
                 type="text"
                 value={slot.timeSlot}
                 onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
-                placeholder="08:00-12:00"
-                className="flex-1 px-2 py-1 border rounded-md text-sm"
+                placeholder="08:00"
+                className="flex-1 px-2 py-1 border rounded-md text-sm bg-background text-foreground"
                 data-testid={`input-timeslot-${slot.id}`}
               />
               <Button
