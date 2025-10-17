@@ -49,10 +49,7 @@ export default function Roles() {
   // Mutation to create role
   const createRoleMutation = useMutation({
     mutationFn: async (data: { name: string }) => {
-      return await apiRequest('/api/roles-detailed', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('POST', '/api/roles-detailed', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/roles-detailed'] });
@@ -76,10 +73,7 @@ export default function Roles() {
   // Mutation to update role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { name: string } }) => {
-      return await apiRequest(`/api/roles-detailed/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      return await apiRequest('PUT', `/api/roles-detailed/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/roles-detailed'] });
