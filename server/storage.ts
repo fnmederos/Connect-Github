@@ -145,7 +145,7 @@ export class MemStorage implements IStorage {
     return this.vehicles.delete(id);
   }
 
-  // Roles methods
+  // Roles methods (legacy array-based)
   async getAllRoles(): Promise<string[]> {
     return [...this.roles];
   }
@@ -153,6 +153,62 @@ export class MemStorage implements IStorage {
   async saveRoles(roles: string[]): Promise<string[]> {
     this.roles = [...roles];
     return this.roles;
+  }
+
+  // Roles CRUD methods (individual role management)
+  async getRole(id: string): Promise<Role | undefined> {
+    // MemStorage doesn't support detailed roles yet, convert from array
+    const roleIndex = parseInt(id);
+    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
+      return undefined;
+    }
+    return {
+      id: id,
+      name: this.roles[roleIndex]
+    };
+  }
+
+  async getAllRolesDetailed(): Promise<Role[]> {
+    // MemStorage doesn't support detailed roles yet, convert from array
+    return this.roles.map((name, index) => ({
+      id: index.toString(),
+      name
+    }));
+  }
+
+  async createRole(insertRole: InsertRole): Promise<Role> {
+    // MemStorage doesn't support detailed roles yet, add to array
+    this.roles.push(insertRole.name);
+    const id = (this.roles.length - 1).toString();
+    return {
+      id,
+      name: insertRole.name
+    };
+  }
+
+  async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
+    // MemStorage doesn't support detailed roles yet, update in array
+    const roleIndex = parseInt(id);
+    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
+      return undefined;
+    }
+    if (roleData.name) {
+      this.roles[roleIndex] = roleData.name;
+    }
+    return {
+      id,
+      name: this.roles[roleIndex]
+    };
+  }
+
+  async deleteRole(id: string): Promise<boolean> {
+    // MemStorage doesn't support detailed roles yet, remove from array
+    const roleIndex = parseInt(id);
+    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
+      return false;
+    }
+    this.roles.splice(roleIndex, 1);
+    return true;
   }
 
   // Employee Absence methods
@@ -314,7 +370,7 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Roles methods
+  // Roles methods (legacy array-based)
   async getAllRoles(): Promise<string[]> {
     const roleRecords = await db.select().from(rolesTable);
     return roleRecords.map(r => r.name);
@@ -331,6 +387,38 @@ export class DatabaseStorage implements IStorage {
     }
     
     return roles;
+  }
+
+  // Roles CRUD methods (individual role management)
+  async getRole(id: string): Promise<Role | undefined> {
+    const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, id));
+    return role || undefined;
+  }
+
+  async getAllRolesDetailed(): Promise<Role[]> {
+    return await db.select().from(rolesTable);
+  }
+
+  async createRole(insertRole: InsertRole): Promise<Role> {
+    const [role] = await db
+      .insert(rolesTable)
+      .values(insertRole)
+      .returning();
+    return role;
+  }
+
+  async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
+    const [updated] = await db
+      .update(rolesTable)
+      .set(roleData)
+      .where(eq(rolesTable.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteRole(id: string): Promise<boolean> {
+    const result = await db.delete(rolesTable).where(eq(rolesTable.id, id)).returning();
+    return result.length > 0;
   }
 
   // Employee Absence methods
