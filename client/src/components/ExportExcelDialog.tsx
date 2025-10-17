@@ -64,36 +64,24 @@ export default function ExportExcelDialog({ open, onOpenChange, assignments }: E
         return;
       }
       
-      // Agrupar empleados por horario (time) para crear filas
-      const employeesByTime = employees.reduce((acc, emp) => {
-        if (!acc[emp.time]) {
-          acc[emp.time] = [];
-        }
-        acc[emp.time].push(emp);
-        return acc;
-      }, {} as Record<string, typeof employees>);
+      // Encontrar el chofer
+      const chofer = employees.find(emp => emp.role === "CHOFER");
       
-      // Crear una fila por cada grupo de horario
-      Object.entries(employeesByTime).forEach(([time, timeEmployees]) => {
-        // Encontrar el chofer
-        const chofer = timeEmployees.find(emp => emp.role === "CHOFER");
-        
-        // Encontrar acompañantes (todos los que no son chofer)
-        const acompanantes = timeEmployees.filter(emp => emp.role !== "CHOFER");
+      // Encontrar acompañantes (todos los que no son chofer)
+      const acompanantes = employees.filter(emp => emp.role !== "CHOFER");
 
-        // Crear fila de Excel
-        const excelRow = {
-          FECHA: assignment.date,
-          VEHICULO: assignment.vehicleName,
-          MATRICULA: assignment.vehicleLicensePlate,
-          CHOFER: chofer?.employeeName || "",
-          "ACOMPAÑANTE 1": acompanantes[0]?.employeeName || "",
-          "ACOMPAÑANTE 2": acompanantes[1]?.employeeName || "",
-          "ACOMPAÑANTE 3": acompanantes[2]?.employeeName || "",
-        };
+      // Crear UNA SOLA fila de Excel con todos los empleados del vehículo
+      const excelRow = {
+        FECHA: assignment.date,
+        VEHICULO: assignment.vehicleName,
+        MATRICULA: assignment.vehicleLicensePlate,
+        CHOFER: chofer?.employeeName || "",
+        "ACOMPAÑANTE 1": acompanantes[0]?.employeeName || "",
+        "ACOMPAÑANTE 2": acompanantes[1]?.employeeName || "",
+        "ACOMPAÑANTE 3": acompanantes[2]?.employeeName || "",
+      };
 
-        excelData.push(excelRow);
-      });
+      excelData.push(excelRow);
     });
 
     // Crear workbook y worksheet
