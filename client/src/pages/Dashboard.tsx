@@ -122,11 +122,54 @@ export default function Dashboard() {
     return { updated, cleanedCount };
   };
 
-  // Efecto para limpiar asignaciones cuando cambia la disponibilidad
+  // Función helper para detectar y limpiar empleados duplicados
+  const removeDuplicateAssignments = (assignments: Record<string, AssignmentRow[]>): {
+    updated: Record<string, AssignmentRow[]>,
+    duplicatesRemoved: number
+  } => {
+    const seenEmployees = new Set<string>();
+    let duplicatesRemoved = 0;
+    const updated: Record<string, AssignmentRow[]> = {};
+
+    // Procesar en orden de vehículos
+    Object.keys(assignments).forEach(vehicleId => {
+      updated[vehicleId] = assignments[vehicleId].map(row => {
+        if (row.employeeId) {
+          // Si este empleado ya fue asignado antes, limpiar esta asignación
+          if (seenEmployees.has(row.employeeId)) {
+            duplicatesRemoved++;
+            return { ...row, employeeId: '' };
+          }
+          // Registrar este empleado como ya asignado
+          seenEmployees.add(row.employeeId);
+        }
+        return row;
+      });
+    });
+
+    return { updated, duplicatesRemoved };
+  };
+
+  // Efecto para limpiar asignaciones cuando cambia la disponibilidad y eliminar duplicados
   useEffect(() => {
     setVehicleAssignments(prev => {
-      const { updated, cleanedCount } = reconcileAssignments(prev);
-      return cleanedCount > 0 ? updated : prev;
+      // Primero reconciliar disponibilidad y roles
+      const { updated: afterReconcile } = reconcileAssignments(prev, false);
+      
+      // Luego eliminar duplicados
+      const { updated: final, duplicatesRemoved } = removeDuplicateAssignments(afterReconcile);
+      
+      // Solo mostrar toast si hay cambios
+      const hasChanges = JSON.stringify(prev) !== JSON.stringify(final);
+      if (hasChanges && duplicatesRemoved > 0) {
+        toast({
+          title: "Asignaciones actualizadas",
+          description: `Se limpiaron duplicados y asignaciones no válidas.`,
+          variant: "default",
+        });
+      }
+      
+      return hasChanges ? final : prev;
     });
   }, [availableEmployees, employees]);
 
@@ -523,8 +566,21 @@ export default function Dashboard() {
     });
     
     // Reconciliar asignaciones para limpiar empleados no disponibles o sin el rol
-    const { updated: reconciledAssignments } = reconcileAssignments(newAssignments);
-    setVehicleAssignments(reconciledAssignments);
+    const { updated: afterReconcile } = reconcileAssignments(newAssignments, false);
+    
+    // Eliminar duplicados
+    const { updated: finalAssignments, duplicatesRemoved } = removeDuplicateAssignments(afterReconcile);
+    
+    setVehicleAssignments(finalAssignments);
+    
+    // Notificar si se limpiaron duplicados
+    if (duplicatesRemoved > 0) {
+      toast({
+        title: "Plantilla cargada con ajustes",
+        description: `Se limpiaron ${duplicatesRemoved} asignación(es) duplicadas al cargar la plantilla.`,
+        variant: "default",
+      });
+    }
     
     // Cargar comentarios por vehículo y DEPOSITO
     try {
@@ -648,26 +704,39 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {selectedVehicles.map((vehicle, index) => (
-                  <AssignmentCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    availableEmployees={availableEmployees}
-                    availableRoles={availableRoles}
-                    assignments={vehicleAssignments[vehicle.id] || []}
-                    comments={vehicleComments[vehicle.id] || ''}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < selectedVehicles.length - 1}
-                    onAddRow={() => handleAddRow(vehicle.id)}
-                    onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
-                    onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
-                    onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
-                    onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
-                    onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
-                    onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
-                    onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
-                  />
-                ))}
+                {selectedVehicles.map((vehicle, index) => {
+                  // Calcular todos los empleados ya asignados en todos los vehículos
+                  const allAssignedEmployeeIds = new Set<string>();
+                  Object.values(vehicleAssignments).forEach(rows => {
+                    rows.forEach(row => {
+                      if (row.employeeId) {
+                        allAssignedEmployeeIds.add(row.employeeId);
+                      }
+                    });
+                  });
+                  
+                  return (
+                    <AssignmentCard
+                      key={vehicle.id}
+                      vehicle={vehicle}
+                      availableEmployees={availableEmployees}
+                      availableRoles={availableRoles}
+                      assignments={vehicleAssignments[vehicle.id] || []}
+                      comments={vehicleComments[vehicle.id] || ''}
+                      allAssignedEmployeeIds={allAssignedEmployeeIds}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < selectedVehicles.length - 1}
+                      onAddRow={() => handleAddRow(vehicle.id)}
+                      onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
+                      onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
+                      onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
+                      onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+                      onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
+                      onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
+                      onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
+                    />
+                  );
+                })}
               </div>
             )}
 

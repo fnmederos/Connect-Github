@@ -25,6 +25,7 @@ interface AssignmentCardProps {
   availableRoles: string[];
   assignments: AssignmentRow[];
   comments: string;
+  allAssignedEmployeeIds: Set<string>;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onAddRow: () => void;
@@ -43,6 +44,7 @@ export default function AssignmentCard({
   availableRoles,
   assignments = [],
   comments,
+  allAssignedEmployeeIds,
   canMoveUp,
   canMoveDown,
   onAddRow,
@@ -96,10 +98,16 @@ export default function AssignmentCard({
       {/* Filas de asignaciones - Lista compacta */}
       <div className="space-y-1">
         {assignments.map((row) => {
-          // Filtrar empleados por rol seleccionado
-          const filteredEmployees = row.role 
-            ? availableEmployees.filter(emp => emp.roles.includes(row.role))
-            : availableEmployees;
+          // Filtrar empleados por rol seleccionado Y excluir ya asignados (excepto el actual)
+          const filteredEmployees = availableEmployees.filter(emp => {
+            // Filtrar por rol si está seleccionado
+            const hasRole = row.role ? emp.roles.includes(row.role) : true;
+            
+            // Excluir empleados ya asignados, excepto el de esta fila
+            const isAlreadyAssigned = allAssignedEmployeeIds.has(emp.id) && emp.id !== row.employeeId;
+            
+            return hasRole && !isAlreadyAssigned;
+          });
 
           return (
             <div key={row.id} className="grid grid-cols-[100px_1fr_1fr_auto] gap-2 items-center">
