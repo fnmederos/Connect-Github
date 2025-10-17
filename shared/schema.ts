@@ -66,6 +66,7 @@ export const roles = pgTable("roles", {
   name: text("name").notNull().unique(),
 });
 
+export const insertRoleSchema = createInsertSchema(roles).omit({ id: true });
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
 export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).omit({ 
@@ -92,6 +93,9 @@ export type EmployeeAbsence = typeof employeeAbsences.$inferSelect;
 
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type Template = typeof templates.$inferSelect;
+
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type Role = typeof roles.$inferSelect;
 
 // Helper type for assignment row data
 export interface AssignmentRowData {

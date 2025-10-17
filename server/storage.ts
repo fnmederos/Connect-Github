@@ -10,6 +10,8 @@ import {
   type InsertDailyAssignment,
   type Template,
   type InsertTemplate,
+  type Role,
+  type InsertRole,
   employees,
   vehicles,
   employeeAbsences,
@@ -38,9 +40,16 @@ export interface IStorage {
   updateVehicle(id: string, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
   deleteVehicle(id: string): Promise<boolean>;
 
-  // Roles methods
+  // Roles methods (legacy array-based)
   getAllRoles(): Promise<string[]>;
   saveRoles(roles: string[]): Promise<string[]>;
+  
+  // Roles CRUD methods (individual role management)
+  getRole(id: string): Promise<Role | undefined>;
+  getAllRolesDetailed(): Promise<Role[]>;
+  createRole(role: InsertRole): Promise<Role>;
+  updateRole(id: string, role: Partial<InsertRole>): Promise<Role | undefined>;
+  deleteRole(id: string): Promise<boolean>;
 
   // Employee Absence methods
   getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined>;
