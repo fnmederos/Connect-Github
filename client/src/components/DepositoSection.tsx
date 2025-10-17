@@ -48,24 +48,24 @@ export default function DepositoSection({
         {timeSlots.map((slot) => (
           <div
             key={slot.id}
-            className="grid grid-cols-[180px_1fr] gap-3 items-start border-b pb-2 last:border-b-0"
+            className="grid grid-cols-[110px_1fr] gap-3 items-start border-b pb-2 last:border-b-0"
             data-testid={`card-timeslot-${slot.id}`}
           >
             {/* Columna izquierda: Horario */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <input
                 type="text"
                 value={slot.timeSlot}
                 onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
                 placeholder="08:00"
-                className="flex-1 px-2 py-1 border rounded-md text-sm bg-background text-foreground"
+                className="w-16 px-2 py-1 border rounded-md text-sm bg-background text-foreground"
                 data-testid={`input-timeslot-${slot.id}`}
               />
               <Button
                 onClick={() => onRemoveTimeSlot(slot.id)}
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
+                className="h-7 w-7 shrink-0"
                 data-testid={`button-remove-timeslot-${slot.id}`}
               >
                 <X className="w-4 h-4" />
