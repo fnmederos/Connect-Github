@@ -59,7 +59,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Feature Specifications
 
-- **Dashboard Workflow:** Manual vehicle selection with an "Ingresar Vehículos" button, multi-select dialog for vehicles, and manual row creation for assignments.
+- **Dashboard Workflow:** Manual vehicle selection with an "Ingresar Vehículos" button, multi-select dialog for vehicles, and manual row creation for assignments. The Dashboard is a blank form by default and does not auto-load previously saved assignments. When saving, the system **replaces** any existing assignments for that date with the current form content (delete-then-create pattern).
 - **History Feature:** Dedicated page (`/history`) for viewing and managing saved daily assignments, including detailed views and deletion functionality with confirmation dialogs.
 - **Roles Management:** Dedicated page (`/roles`) for CRUD operations on employee roles/functions. Supports creating, editing, and deleting roles with uniqueness validation and proper error handling (409 Conflict for duplicates).
 - **Comments and Depot Features:** Each vehicle card has a dedicated comments textarea. A separate DEPOSITO section allows scheduling warehouse personnel with multiple time slots, employee assignments, and a special toggleable ENCARGADO (Supervisor) position.
