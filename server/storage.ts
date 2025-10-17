@@ -191,7 +191,9 @@ export class MemStorage implements IStorage {
   async createDailyAssignment(insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
     const id = randomUUID();
     const assignment: DailyAssignment = { 
-      ...insertAssignment, 
+      ...insertAssignment,
+      comments: insertAssignment.comments ?? '',
+      depositoAssignments: insertAssignment.depositoAssignments ?? '[]',
       id,
       createdAt: new Date()
     };
@@ -221,7 +223,9 @@ export class MemStorage implements IStorage {
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
     const id = randomUUID();
     const template: Template = { 
-      ...insertTemplate, 
+      ...insertTemplate,
+      comments: insertTemplate.comments ?? '',
+      depositoAssignments: insertTemplate.depositoAssignments ?? '[]',
       id,
       createdAt: new Date()
     };

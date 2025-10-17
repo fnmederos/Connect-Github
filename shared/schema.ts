@@ -25,6 +25,11 @@ export const dailyAssignments = pgTable("daily_assignments", {
   // Store assignment rows as JSON for easy Excel export
   // Format: [{ employeeId, employeeName, role, time }]
   assignmentRows: text("assignment_rows").notNull(),
+  // Comments field for notes
+  comments: text("comments").notNull().default(''),
+  // DEPOSITO assignments as JSON
+  // Format: [{ timeSlot, employees: [{ employeeId, employeeName, isEncargado }] }]
+  depositoAssignments: text("deposito_assignments").notNull().default('[]'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -44,6 +49,10 @@ export const templates = pgTable("templates", {
   // Store complete assignment configuration as JSON
   // Format: { [vehicleId]: [{ employeeId, employeeName, role, time }] }
   assignmentData: text("assignment_data").notNull(),
+  // Comments field for template notes
+  comments: text("comments").notNull().default(''),
+  // DEPOSITO assignments for template
+  depositoAssignments: text("deposito_assignments").notNull().default('[]'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -86,4 +95,18 @@ export interface AssignmentRowData {
   employeeName: string;
   role: string;
   time: string;
+}
+
+// Helper type for deposito employee assignment
+export interface DepositoEmployeeData {
+  employeeId: string;
+  employeeName: string;
+  isEncargado: boolean;
+}
+
+// Helper type for deposito time slot
+export interface DepositoTimeSlot {
+  id: string;
+  timeSlot: string; // e.g., "08:00-12:00"
+  employees: DepositoEmployeeData[];
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import type { DailyAssignment, AssignmentRowData } from "@shared/schema";
+import type { DailyAssignment, AssignmentRowData, DepositoTimeSlot } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -145,6 +145,70 @@ export default function History() {
                 </Card>
               );
             })}
+
+            {(() => {
+              // Buscar cualquier assignment que tenga comentarios
+              const assignmentWithComments = selectedAssignments.find(a => a.comments && a.comments.trim().length > 0);
+              if (!assignmentWithComments) return null;
+              
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Comentarios</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap">{assignmentWithComments.comments}</p>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
+            {(() => {
+              // Buscar cualquier assignment que tenga DEPOSITO assignments
+              const assignmentWithDeposito = selectedAssignments.find(a => {
+                if (!a.depositoAssignments) return false;
+                try {
+                  const data = JSON.parse(a.depositoAssignments) as DepositoTimeSlot[];
+                  return data.length > 0;
+                } catch {
+                  return false;
+                }
+              });
+              
+              if (!assignmentWithDeposito || !assignmentWithDeposito.depositoAssignments) return null;
+              
+              const depositoData = JSON.parse(assignmentWithDeposito.depositoAssignments) as DepositoTimeSlot[];
+              
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">DEPOSITO</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {depositoData.map((slot, slotIndex) => (
+                        <div key={slotIndex} className="border rounded-md p-3">
+                          <div className="font-medium text-sm mb-2">{slot.timeSlot}</div>
+                          <div className="space-y-1">
+                            {slot.employees.map((emp, empIndex) => (
+                              <div 
+                                key={empIndex}
+                                className={`text-sm p-2 rounded-md ${
+                                  emp.isEncargado ? 'bg-primary/10 border border-primary font-semibold' : 'bg-muted/50'
+                                }`}
+                              >
+                                {emp.isEncargado && <span className="text-primary mr-2">ENCARGADO:</span>}
+                                {emp.employeeName}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
 
           <div className="flex justify-end gap-2 mt-4">

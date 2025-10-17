@@ -194,3 +194,43 @@ DELETE /api/roles/:name           - Delete role
 - Implemented VehicleSelectionDialog component with proper state management
 - Dashboard state correctly rebuilds when vehicle selection changes
 - End-to-end tested: vehicle selection → manual assignment creation → save → history view → deselection flow
+
+### Comments and DEPOSITO Features (Latest)
+- **Comments Field**: Added large textarea in Dashboard for daily planning notes
+  - Positioned between vehicle assignments and DEPOSITO section
+  - Clearly visible and easy to use for leaving written notes to personnel
+  - Saved with daily assignments and displayed in History page
+  - Supports multi-line text with whitespace preservation
+
+- **DEPOSITO Section**: New fixed section for warehouse personnel scheduling
+  - Always visible below vehicles in Dashboard (pushes down as vehicles are added)
+  - Add/remove multiple time slots with custom times (e.g., "08:00-12:00", "14:00-18:00")
+  - Each time slot can have multiple employees assigned
+  - Employees shown by name only (no role/position field needed)
+  - Special ENCARGADO (Supervisor) position:
+    - Toggle button to mark employee as ENCARGADO
+    - Only 1 ENCARGADO allowed per time slot (auto-toggles off others when activating)
+    - Can have multiple ENCARGADO across different time slots
+    - Not required in every time slot
+    - Visually highlighted with primary color background and border
+    - Shows "ENCARGADO:" prefix label for clarity
+  - Data persists as JSON in database for Excel export compatibility
+  - Full integration with Templates system (save/load DEPOSITO configurations)
+
+- **Database Schema Updates**:
+  - Added `comments` (text) field to `daily_assignments` and `templates` tables
+  - Added `deposito_assignments` (text, JSON) field to both tables
+  - Fields use `notNull()` with defaults for data consistency
+  - Drizzle automatically maps snake_case DB columns to camelCase TypeScript properties
+
+- **History Page Enhancements**:
+  - Displays comments and DEPOSITO data in day detail view
+  - Searches all assignments for a date to find comments/DEPOSITO (not just first vehicle)
+  - ENCARGADO employees highlighted with same styling as Dashboard
+  - Time slots and employee assignments clearly organized
+
+- **Technical Notes**:
+  - Comments and DEPOSITO are saved with each vehicle assignment for consistency
+  - History component searches all assignments to display shared metadata
+  - Future optimization possible: extract to separate day-level entity
+  - End-to-end tested: comments entry → DEPOSITO configuration → save → history display

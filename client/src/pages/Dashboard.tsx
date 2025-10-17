@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, Save, Plus, FileText, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -13,7 +14,8 @@ import AssignmentCard from "@/components/AssignmentCard";
 import VehicleSelectionDialog from "@/components/VehicleSelectionDialog";
 import SaveTemplateDialog from "@/components/SaveTemplateDialog";
 import LoadTemplateDialog from "@/components/LoadTemplateDialog";
-import type { Vehicle, Employee, EmployeeAbsence, Template } from "@shared/schema";
+import DepositoSection from "@/components/DepositoSection";
+import type { Vehicle, Employee, EmployeeAbsence, Template, DepositoTimeSlot } from "@shared/schema";
 
 interface AssignmentRow {
   id: string;
@@ -26,6 +28,8 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
+  const [comments, setComments] = useState<string>('');
+  const [depositoTimeSlots, setDepositoTimeSlots] = useState<DepositoTimeSlot[]>([]);
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
@@ -142,43 +146,149 @@ export default function Dashboard() {
     }));
   };
 
+  // Handlers para DEPOSITO
+  const handleAddDepositoTimeSlot = () => {
+    setDepositoTimeSlots(prev => [...prev, {
+      id: `deposito-${Date.now()}`,
+      timeSlot: '',
+      employees: []
+    }]);
+  };
+
+  const handleRemoveDepositoTimeSlot = (slotId: string) => {
+    setDepositoTimeSlots(prev => prev.filter(slot => slot.id !== slotId));
+  };
+
+  const handleUpdateDepositoTimeSlot = (slotId: string, timeSlot: string) => {
+    setDepositoTimeSlots(prev => prev.map(slot => 
+      slot.id === slotId ? { ...slot, timeSlot } : slot
+    ));
+  };
+
+  const handleAddDepositoEmployee = (slotId: string) => {
+    setDepositoTimeSlots(prev => prev.map(slot => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          employees: [...slot.employees, { employeeId: '', employeeName: '', isEncargado: false }]
+        };
+      }
+      return slot;
+    }));
+  };
+
+  const handleRemoveDepositoEmployee = (slotId: string, employeeIndex: number) => {
+    setDepositoTimeSlots(prev => prev.map(slot => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          employees: slot.employees.filter((_, i) => i !== employeeIndex)
+        };
+      }
+      return slot;
+    }));
+  };
+
+  const handleUpdateDepositoEmployee = (slotId: string, employeeIndex: number, employeeId: string) => {
+    setDepositoTimeSlots(prev => prev.map(slot => {
+      if (slot.id === slotId) {
+        const employee = employees.find(e => e.id === employeeId);
+        return {
+          ...slot,
+          employees: slot.employees.map((emp, i) => 
+            i === employeeIndex 
+              ? { ...emp, employeeId, employeeName: employee?.name || '' }
+              : emp
+          )
+        };
+      }
+      return slot;
+    }));
+  };
+
+  const handleToggleDepositoEncargado = (slotId: string, employeeIndex: number) => {
+    setDepositoTimeSlots(prev => prev.map(slot => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          employees: slot.employees.map((emp, i) => {
+            if (i === employeeIndex) {
+              return { ...emp, isEncargado: !emp.isEncargado };
+            }
+            // Si estamos activando encargado en este empleado, desactivar otros en el mismo slot
+            if (slot.employees[employeeIndex].isEncargado === false) {
+              return { ...emp, isEncargado: false };
+            }
+            return emp;
+          })
+        };
+      }
+      return slot;
+    }));
+  };
+
   // Mutation para guardar asignaciones
   const saveAssignmentsMutation = useMutation({
     mutationFn: async () => {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const assignments = [];
 
-      for (const vehicle of selectedVehicles) {
-        const rows = vehicleAssignments[vehicle.id] || [];
-        
-        // Solo guardar si hay al menos una asignación completa
-        const validRows = rows.filter(row => row.employeeId && row.role);
-        if (validRows.length === 0) continue;
-
-        const assignmentRowsData = validRows.map(row => {
-          const employee = employees.find(e => e.id === row.employeeId);
-          return {
-            employeeId: row.employeeId,
-            employeeName: employee?.name || '',
-            role: row.role,
-            time: row.time
-          };
-        });
-
+      // Si no hay vehículos seleccionados, pero hay comentarios o DEPOSITO, guardar solo eso
+      if (selectedVehicles.length === 0) {
+        // No hay vehículos, verificar si hay algo que guardar
+        if (!comments && depositoTimeSlots.length === 0) {
+          throw new Error('No hay datos para guardar');
+        }
+        // Guardar solo comentarios y DEPOSITO sin vehículos (crear un registro especial)
         const response = await fetch('/api/daily-assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             date: dateStr,
-            vehicleId: vehicle.id,
-            vehicleName: vehicle.name,
-            vehicleLicensePlate: vehicle.licensePlate,
-            assignmentRows: JSON.stringify(assignmentRowsData)
+            vehicleId: 'no-vehicle',
+            vehicleName: 'Sin Vehículos',
+            vehicleLicensePlate: '',
+            assignmentRows: JSON.stringify([]),
+            comments: comments,
+            depositoAssignments: JSON.stringify(depositoTimeSlots)
           }),
         });
 
         if (!response.ok) throw new Error('Failed to save assignment');
         assignments.push(await response.json());
+      } else {
+        // Hay vehículos seleccionados
+        for (const vehicle of selectedVehicles) {
+          const rows = vehicleAssignments[vehicle.id] || [];
+          
+          const validRows = rows.filter(row => row.employeeId && row.role);
+          const assignmentRowsData = validRows.map(row => {
+            const employee = employees.find(e => e.id === row.employeeId);
+            return {
+              employeeId: row.employeeId,
+              employeeName: employee?.name || '',
+              role: row.role,
+              time: row.time
+            };
+          });
+
+          const response = await fetch('/api/daily-assignments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: dateStr,
+              vehicleId: vehicle.id,
+              vehicleName: vehicle.name,
+              vehicleLicensePlate: vehicle.licensePlate,
+              assignmentRows: JSON.stringify(assignmentRowsData),
+              comments: comments,
+              depositoAssignments: JSON.stringify(depositoTimeSlots)
+            }),
+          });
+
+          if (!response.ok) throw new Error('Failed to save assignment');
+          assignments.push(await response.json());
+        }
       }
 
       return assignments;
@@ -220,7 +330,9 @@ export default function Dashboard() {
       return await apiRequest('POST', '/api/templates', {
         name,
         vehicleIds: selectedVehicleIds,
-        assignmentData: JSON.stringify(assignmentData)
+        assignmentData: JSON.stringify(assignmentData),
+        comments: comments,
+        depositoAssignments: JSON.stringify(depositoTimeSlots)
       });
     },
     onSuccess: () => {
@@ -292,6 +404,11 @@ export default function Dashboard() {
     });
     
     setVehicleAssignments(newAssignments);
+    
+    // Cargar comentarios y DEPOSITO
+    setComments(template.comments || '');
+    const depositoData = template.depositoAssignments ? JSON.parse(template.depositoAssignments) : [];
+    setDepositoTimeSlots(depositoData);
     
     toast({
       title: "Plantilla cargada",
@@ -386,21 +503,46 @@ export default function Dashboard() {
               </p>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {selectedVehicles.map((vehicle) => (
-                <AssignmentCard
-                  key={vehicle.id}
-                  vehicle={vehicle}
-                  availableEmployees={availableEmployees}
-                  availableRoles={availableRoles}
-                  assignments={vehicleAssignments[vehicle.id] || []}
-                  onAddRow={() => handleAddRow(vehicle.id)}
-                  onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
-                  onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
-                  onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
-                  onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                {selectedVehicles.map((vehicle) => (
+                  <AssignmentCard
+                    key={vehicle.id}
+                    vehicle={vehicle}
+                    availableEmployees={availableEmployees}
+                    availableRoles={availableRoles}
+                    assignments={vehicleAssignments[vehicle.id] || []}
+                    onAddRow={() => handleAddRow(vehicle.id)}
+                    onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
+                    onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
+                    onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
+                    onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+                  />
+                ))}
+              </div>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Comentarios</h3>
+                <Textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Escribe aquí tus comentarios para este día..."
+                  className="min-h-[120px] text-base"
+                  data-testid="textarea-comments"
                 />
-              ))}
+              </Card>
+
+              <DepositoSection
+                timeSlots={depositoTimeSlots}
+                availableEmployees={availableEmployees}
+                onAddTimeSlot={handleAddDepositoTimeSlot}
+                onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
+                onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
+                onAddEmployee={handleAddDepositoEmployee}
+                onRemoveEmployee={handleRemoveDepositoEmployee}
+                onUpdateEmployee={handleUpdateDepositoEmployee}
+                onToggleEncargado={handleToggleDepositoEncargado}
+              />
             </div>
           )}
         </div>
