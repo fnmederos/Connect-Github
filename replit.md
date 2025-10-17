@@ -195,14 +195,17 @@ DELETE /api/roles/:name           - Delete role
 - Dashboard state correctly rebuilds when vehicle selection changes
 - End-to-end tested: vehicle selection → manual assignment creation → save → history view → deselection flow
 
-### Comments and DEPOSITO Features (Latest)
-- **Comments Field**: Added large textarea in Dashboard for daily planning notes
-  - Positioned between vehicle assignments and DEPOSITO section
-  - Clearly visible and easy to use for leaving written notes to personnel
-  - Saved with daily assignments and displayed in History page
+### Comments and DEPOSITO Features (Latest - Refactored Oct 2025)
+- **Comments Field**: Each vehicle has its own comments textarea
+  - **Location**: Inside each vehicle card, below the "+ Agregar línea" button
+  - **Scope**: Comments are per-vehicle, not global
+  - **Placeholder**: "Comentarios para este vehículo..."
+  - Saved independently with each vehicle's daily assignment
+  - Displayed in History page per vehicle
   - Supports multi-line text with whitespace preservation
+  - **Backward Compatibility**: Legacy templates with global comments are automatically distributed to all vehicles when loaded
 
-- **DEPOSITO Section**: New fixed section for warehouse personnel scheduling
+- **DEPOSITO Section**: Separate section for warehouse personnel scheduling (not part of vehicle cards)
   - Always visible below vehicles in Dashboard (pushes down as vehicles are added)
   - Add/remove multiple time slots with custom times (e.g., "08:00-12:00", "14:00-18:00")
   - Each time slot can have multiple employees assigned
@@ -224,13 +227,16 @@ DELETE /api/roles/:name           - Delete role
   - Drizzle automatically maps snake_case DB columns to camelCase TypeScript properties
 
 - **History Page Enhancements**:
-  - Displays comments and DEPOSITO data in day detail view
-  - Searches all assignments for a date to find comments/DEPOSITO (not just first vehicle)
+  - Displays per-vehicle comments in day detail view
+  - Shows DEPOSITO data separately (searches all assignments for the date)
   - ENCARGADO employees highlighted with same styling as Dashboard
   - Time slots and employee assignments clearly organized
 
 - **Technical Notes**:
-  - Comments and DEPOSITO are saved with each vehicle assignment for consistency
-  - History component searches all assignments to display shared metadata
-  - Future optimization possible: extract to separate day-level entity
-  - End-to-end tested: comments entry → DEPOSITO configuration → save → history display
+  - **State Management**: Dashboard uses `vehicleComments: Record<string, string>` (key = vehicleId, value = comments)
+  - **Persistence**: Each vehicle's `comments` field in `daily_assignments` table stores its own comments
+  - **Templates**: Comments saved as JSON object `{"vehicleId1": "comment1", "vehicleId2": "comment2"}`
+  - **Backward Compatibility**: Old templates with string comments are auto-converted by distributing to all vehicles
+  - DEPOSITO assignments saved with each vehicle as denormalized JSON for Excel export compatibility
+  - Future optimization possible: extract DEPOSITO to separate day-level entity
+  - End-to-end tested: per-vehicle comments → save → History display → template save/load with legacy support
