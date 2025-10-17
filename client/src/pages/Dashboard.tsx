@@ -28,7 +28,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
-  const [comments, setComments] = useState<string>('');
+  const [vehicleComments, setVehicleComments] = useState<Record<string, string>>({});
   const [depositoTimeSlots, setDepositoTimeSlots] = useState<DepositoTimeSlot[]>([]);
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
@@ -101,6 +101,15 @@ export default function Dashboard() {
       });
       return updated;
     });
+    // Reconstruir comentarios solo para vehículos seleccionados
+    setVehicleComments(prev => {
+      const updated: Record<string, string> = {};
+      vehicleIds.forEach(id => {
+        // Mantener comentarios existentes o inicializar vacío
+        updated[id] = prev[id] || '';
+      });
+      return updated;
+    });
   };
 
   const handleAddRow = (vehicleId: string) => {
@@ -143,6 +152,13 @@ export default function Dashboard() {
     setVehicleAssignments(prev => ({
       ...prev,
       [vehicleId]: (prev[vehicleId] || []).map(a => a.id === rowId ? { ...a, time } : a)
+    }));
+  };
+
+  const handleUpdateVehicleComments = (vehicleId: string, comments: string) => {
+    setVehicleComments(prev => ({
+      ...prev,
+      [vehicleId]: comments
     }));
   };
 
@@ -512,11 +528,13 @@ export default function Dashboard() {
                     availableEmployees={availableEmployees}
                     availableRoles={availableRoles}
                     assignments={vehicleAssignments[vehicle.id] || []}
+                    comments={vehicleComments[vehicle.id] || ''}
                     onAddRow={() => handleAddRow(vehicle.id)}
                     onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
                     onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
                     onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
                     onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+                    onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
                   />
                 ))}
               </div>
