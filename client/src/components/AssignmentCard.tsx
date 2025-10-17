@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Truck, Plus, X } from "lucide-react";
+import { Truck, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -25,12 +25,16 @@ interface AssignmentCardProps {
   availableRoles: string[];
   assignments: AssignmentRow[];
   comments: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onAddRow: () => void;
   onRemoveRow: (rowId: string) => void;
   onUpdateRole: (rowId: string, role: string) => void;
   onUpdateEmployee: (rowId: string, employeeId: string) => void;
   onUpdateTime: (rowId: string, time: string) => void;
   onUpdateComments: (comments: string) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
 export default function AssignmentCard({
@@ -39,12 +43,16 @@ export default function AssignmentCard({
   availableRoles,
   assignments = [],
   comments,
+  canMoveUp,
+  canMoveDown,
   onAddRow,
   onRemoveRow,
   onUpdateRole,
   onUpdateEmployee,
   onUpdateTime,
   onUpdateComments,
+  onMoveUp,
+  onMoveDown,
 }: AssignmentCardProps) {
   return (
     <Card className="p-3" data-testid={`card-assignment-${vehicle.id}`}>
@@ -60,6 +68,28 @@ export default function AssignmentCard({
           <p className="text-xs font-mono text-muted-foreground leading-tight">
             {vehicle.licensePlate}
           </p>
+        </div>
+        <div className="flex gap-1">
+          <Button
+            onClick={onMoveUp}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={!canMoveUp}
+            data-testid={`button-move-up-${vehicle.id}`}
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={onMoveDown}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            disabled={!canMoveDown}
+            data-testid={`button-move-down-${vehicle.id}`}
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 

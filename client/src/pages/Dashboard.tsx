@@ -87,7 +87,9 @@ export default function Dashboard() {
 
   // Calcular vehículos seleccionados basado en IDs
   const selectedVehicles = useMemo(() => {
-    return vehicles.filter(v => selectedVehicleIds.includes(v.id));
+    return selectedVehicleIds
+      .map(id => vehicles.find(v => v.id === id))
+      .filter((v): v is Vehicle => v !== undefined);
   }, [vehicles, selectedVehicleIds]);
 
   // Handler para confirmar selección de vehículos
@@ -161,6 +163,26 @@ export default function Dashboard() {
       ...prev,
       [vehicleId]: comments
     }));
+  };
+
+  const handleMoveVehicleUp = (vehicleId: string) => {
+    setSelectedVehicleIds(prev => {
+      const index = prev.indexOf(vehicleId);
+      if (index <= 0) return prev;
+      const newOrder = [...prev];
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+      return newOrder;
+    });
+  };
+
+  const handleMoveVehicleDown = (vehicleId: string) => {
+    setSelectedVehicleIds(prev => {
+      const index = prev.indexOf(vehicleId);
+      if (index < 0 || index >= prev.length - 1) return prev;
+      const newOrder = [...prev];
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      return newOrder;
+    });
   };
 
   // Handlers para DEPOSITO
@@ -553,7 +575,7 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {selectedVehicles.map((vehicle) => (
+                {selectedVehicles.map((vehicle, index) => (
                   <AssignmentCard
                     key={vehicle.id}
                     vehicle={vehicle}
@@ -561,12 +583,16 @@ export default function Dashboard() {
                     availableRoles={availableRoles}
                     assignments={vehicleAssignments[vehicle.id] || []}
                     comments={vehicleComments[vehicle.id] || ''}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < selectedVehicles.length - 1}
                     onAddRow={() => handleAddRow(vehicle.id)}
                     onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
                     onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
                     onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
                     onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
                     onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
+                    onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
+                    onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
                   />
                 ))}
               </div>
