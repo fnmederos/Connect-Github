@@ -270,14 +270,25 @@ export default function Dashboard() {
   const saveAssignmentsMutation = useMutation({
     mutationFn: async () => {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      // Primero validar que hay datos para guardar
+      if (selectedVehicles.length === 0 && depositoTimeSlots.length === 0) {
+        throw new Error('No hay datos para guardar');
+      }
+      
+      // Solo ahora eliminar las asignaciones existentes del día para reemplazarlas
+      const deleteResponse = await fetch(`/api/daily-assignments/by-date/${dateStr}`, {
+        method: 'DELETE',
+      });
+      
+      if (!deleteResponse.ok) {
+        throw new Error('No se pudo eliminar las asignaciones anteriores');
+      }
+      
       const assignments = [];
 
       // Si no hay vehículos seleccionados, pero hay DEPOSITO, guardar solo eso
       if (selectedVehicles.length === 0) {
-        // No hay vehículos, verificar si hay algo que guardar
-        if (depositoTimeSlots.length === 0) {
-          throw new Error('No hay datos para guardar');
-        }
         // Guardar solo DEPOSITO sin vehículos (crear un registro especial)
         const response = await fetch('/api/daily-assignments', {
           method: 'POST',
