@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronRight, Calendar as CalendarIcon, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DailyAssignment, AssignmentRowData, DepositoTimeSlot } from "@shared/schema";
@@ -12,10 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ExportExcelDialog from "@/components/ExportExcelDialog";
 
 export default function History() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Fetch all daily assignments
   const { data: allAssignments = [] } = useQuery<DailyAssignment[]>({
@@ -45,13 +47,23 @@ export default function History() {
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold" data-testid="text-history-title">
-              Historial de Planificaciones
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Consulta las planificaciones guardadas por día
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold" data-testid="text-history-title">
+                Historial de Planificaciones
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Consulta las planificaciones guardadas por día
+              </p>
+            </div>
+            <Button
+              onClick={() => setExportDialogOpen(true)}
+              disabled={uniqueDates.length === 0}
+              data-testid="button-export-excel"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exportar a Excel
+            </Button>
           </div>
 
           {uniqueDates.length === 0 ? (
@@ -231,6 +243,13 @@ export default function History() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para exportar a Excel */}
+      <ExportExcelDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        assignments={allAssignments}
+      />
     </div>
   );
 }
