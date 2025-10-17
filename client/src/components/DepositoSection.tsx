@@ -28,14 +28,14 @@ export default function DepositoSection({
   onToggleEncargado,
 }: DepositoSectionProps) {
   return (
-    <div className="border-4 border-red-500 rounded-lg p-4 bg-red-500/5">
+    <Card className="p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-red-600">DEPOSITO</h2>
+        <h2 className="text-lg font-bold">DEPOSITO</h2>
         <Button
           onClick={onAddTimeSlot}
           size="sm"
-          className="h-8 text-xs bg-red-500 hover:bg-red-600 text-white"
+          className="h-8 text-xs"
           data-testid="button-add-timeslot"
         >
           <Plus className="w-3 h-3 mr-1" />
@@ -43,36 +43,36 @@ export default function DepositoSection({
         </Button>
       </div>
 
-      {/* Time Slots - Cajas verdes */}
-      <div className="space-y-3">
+      {/* Time Slots - Layout horizontal */}
+      <div className="space-y-2">
         {timeSlots.map((slot) => (
           <div
             key={slot.id}
-            className="border-3 border-green-600 bg-green-500/10 rounded-md p-3"
+            className="grid grid-cols-[180px_1fr] gap-3 items-start border-b pb-2 last:border-b-0"
             data-testid={`card-timeslot-${slot.id}`}
           >
-            {/* Time slot header */}
-            <div className="flex items-center gap-2 mb-3">
+            {/* Columna izquierda: Horario */}
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={slot.timeSlot}
                 onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
                 placeholder="08:00-12:00"
-                className="flex-1 px-2 py-1 border-2 border-green-600 bg-white rounded-md text-sm font-medium"
+                className="flex-1 px-2 py-1 border rounded-md text-sm"
                 data-testid={`input-timeslot-${slot.id}`}
               />
               <Button
                 onClick={() => onRemoveTimeSlot(slot.id)}
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 hover:bg-red-500/20"
+                className="h-7 w-7"
                 data-testid={`button-remove-timeslot-${slot.id}`}
               >
-                <X className="w-4 h-4 text-red-600" />
+                <X className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* Employees inside green box */}
+            {/* Columna derecha: Empleados nivelados */}
             <div className="space-y-1.5">
               {slot.employees.map((employee, index) => {
                 const isEncargado = employee.isEncargado;
@@ -80,15 +80,11 @@ export default function DepositoSection({
                 return (
                   <div
                     key={index}
-                    className={`flex items-center gap-2 p-2 rounded border-2 ${
-                      isEncargado 
-                        ? 'bg-yellow-400/20 border-yellow-600' 
-                        : 'bg-orange-500/10 border-orange-500'
-                    }`}
+                    className="flex items-center gap-2"
                     data-testid={`deposito-employee-${slot.id}-${index}`}
                   >
                     {isEncargado && (
-                      <span className="font-bold text-yellow-700 text-xs px-1.5 bg-yellow-400/40 rounded">
+                      <span className="font-bold text-xs px-1.5 py-0.5 bg-primary/10 border border-primary rounded text-primary">
                         ENCARGADO
                       </span>
                     )}
@@ -96,7 +92,7 @@ export default function DepositoSection({
                       value={employee.employeeId}
                       onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
                     >
-                      <SelectTrigger className="flex-1 h-7 text-xs border-transparent bg-transparent" data-testid={`select-employee-${slot.id}-${index}`}>
+                      <SelectTrigger className="flex-1 h-8 text-xs" data-testid={`select-employee-${slot.id}-${index}`}>
                         <SelectValue placeholder="Seleccionar empleado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -111,7 +107,7 @@ export default function DepositoSection({
                       onClick={() => onToggleEncargado(slot.id, index)}
                       variant={isEncargado ? "default" : "outline"}
                       size="sm"
-                      className="h-6 text-xs px-2"
+                      className="h-7 text-xs px-2"
                       data-testid={`button-toggle-encargado-${slot.id}-${index}`}
                     >
                       {isEncargado ? "✓" : "E"}
@@ -120,7 +116,7 @@ export default function DepositoSection({
                       onClick={() => onRemoveEmployee(slot.id, index)}
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-7 w-7"
                       data-testid={`button-remove-employee-${slot.id}-${index}`}
                     >
                       <X className="w-3 h-3" />
@@ -128,22 +124,22 @@ export default function DepositoSection({
                   </div>
                 );
               })}
-            </div>
 
-            {/* Add employee button */}
-            <Button
-              onClick={() => onAddEmployee(slot.id)}
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7 text-xs border-green-600 hover:bg-green-500/20"
-              data-testid={`button-add-employee-${slot.id}`}
-            >
-              <Plus className="w-3 h-3 mr-1" />
-              Agregar Empleado
-            </Button>
+              {/* Add employee button */}
+              <Button
+                onClick={() => onAddEmployee(slot.id)}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                data-testid={`button-add-employee-${slot.id}`}
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Agregar Empleado
+              </Button>
+            </div>
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
