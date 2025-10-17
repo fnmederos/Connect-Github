@@ -496,14 +496,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {selectedVehicleIds.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">
-                No hay vehículos seleccionados. Haz clic en "Ingresar Vehículos" para comenzar.
-              </p>
-            </Card>
-          ) : (
-            <div className="space-y-6">
+          <div className="space-y-6">
+            {selectedVehicleIds.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  No hay vehículos seleccionados. Haz clic en "Ingresar Vehículos" para comenzar.
+                </p>
+              </Card>
+            ) : (
               <div className="space-y-4">
                 {selectedVehicles.map((vehicle) => (
                   <AssignmentCard
@@ -520,31 +520,31 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
+            )}
 
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Comentarios</h3>
-                <Textarea
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  placeholder="Escribe aquí tus comentarios para este día..."
-                  className="min-h-[120px] text-base"
-                  data-testid="textarea-comments"
-                />
-              </Card>
-
-              <DepositoSection
-                timeSlots={depositoTimeSlots}
-                availableEmployees={availableEmployees}
-                onAddTimeSlot={handleAddDepositoTimeSlot}
-                onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
-                onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
-                onAddEmployee={handleAddDepositoEmployee}
-                onRemoveEmployee={handleRemoveDepositoEmployee}
-                onUpdateEmployee={handleUpdateDepositoEmployee}
-                onToggleEncargado={handleToggleDepositoEncargado}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Comentarios</h3>
+              <Textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Escribe aquí tus comentarios para este día..."
+                className="min-h-[120px] text-base"
+                data-testid="textarea-comments"
               />
-            </div>
-          )}
+            </Card>
+
+            <DepositoSection
+              timeSlots={depositoTimeSlots}
+              availableEmployees={availableEmployees}
+              onAddTimeSlot={handleAddDepositoTimeSlot}
+              onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
+              onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
+              onAddEmployee={handleAddDepositoEmployee}
+              onRemoveEmployee={handleRemoveDepositoEmployee}
+              onUpdateEmployee={handleUpdateDepositoEmployee}
+              onToggleEncargado={handleToggleDepositoEncargado}
+            />
+          </div>
         </div>
       </div>
 
