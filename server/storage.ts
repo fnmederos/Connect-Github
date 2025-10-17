@@ -64,6 +64,7 @@ export interface IStorage {
   getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]>;
   createDailyAssignment(assignment: InsertDailyAssignment): Promise<DailyAssignment>;
   deleteDailyAssignment(id: string): Promise<boolean>;
+  deleteDailyAssignmentsByDate(date: string): Promise<number>;
 
   // Template methods
   getTemplate(id: string): Promise<Template | undefined>;
@@ -281,6 +282,17 @@ export class MemStorage implements IStorage {
     return this.dailyAssignments.delete(id);
   }
 
+  async deleteDailyAssignmentsByDate(date: string): Promise<number> {
+    const assignmentsToDelete = Array.from(this.dailyAssignments.values())
+      .filter(assignment => assignment.date === date);
+    
+    assignmentsToDelete.forEach(assignment => {
+      this.dailyAssignments.delete(assignment.id);
+    });
+    
+    return assignmentsToDelete.length;
+  }
+
   // Template methods
   async getTemplate(id: string): Promise<Template | undefined> {
     return this.templates.get(id);
@@ -484,6 +496,11 @@ export class DatabaseStorage implements IStorage {
   async deleteDailyAssignment(id: string): Promise<boolean> {
     const result = await db.delete(dailyAssignments).where(eq(dailyAssignments.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteDailyAssignmentsByDate(date: string): Promise<number> {
+    const result = await db.delete(dailyAssignments).where(eq(dailyAssignments.date, date)).returning();
+    return result.length;
   }
 
   // Template methods
