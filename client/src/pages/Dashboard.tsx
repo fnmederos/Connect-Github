@@ -85,6 +85,51 @@ export default function Dashboard() {
     return employees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
   }, [employees, selectedDate, allAbsences]);
 
+  // Función helper para reconciliar asignaciones con disponibilidad y roles
+  const reconcileAssignments = (assignments: Record<string, AssignmentRow[]>, showToast: boolean = true): { 
+    updated: Record<string, AssignmentRow[]>, 
+    cleanedCount: number 
+  } => {
+    let cleanedCount = 0;
+    const availableEmployeeIds = new Set(availableEmployees.map(e => e.id));
+    const updated: Record<string, AssignmentRow[]> = {};
+    
+    Object.keys(assignments).forEach(vehicleId => {
+      updated[vehicleId] = assignments[vehicleId].map(row => {
+        if (row.employeeId) {
+          const employee = employees.find(e => e.id === row.employeeId);
+          const isAvailable = availableEmployeeIds.has(row.employeeId);
+          const hasRole = employee?.roles.includes(row.role);
+          
+          // Limpiar si el empleado no está disponible o no tiene el rol
+          if (!isAvailable || !hasRole) {
+            cleanedCount++;
+            return { ...row, employeeId: '' };
+          }
+        }
+        return row;
+      });
+    });
+    
+    if (showToast && cleanedCount > 0) {
+      toast({
+        title: "Asignaciones actualizadas",
+        description: `Se limpiaron ${cleanedCount} asignación(es) de personal no disponible o sin la función requerida.`,
+        variant: "default",
+      });
+    }
+    
+    return { updated, cleanedCount };
+  };
+
+  // Efecto para limpiar asignaciones cuando cambia la disponibilidad
+  useEffect(() => {
+    setVehicleAssignments(prev => {
+      const { updated, cleanedCount } = reconcileAssignments(prev);
+      return cleanedCount > 0 ? updated : prev;
+    });
+  }, [availableEmployees, employees]);
+
   // Calcular vehículos seleccionados basado en IDs
   const selectedVehicles = useMemo(() => {
     return selectedVehicleIds
@@ -140,7 +185,22 @@ export default function Dashboard() {
   const handleUpdateRole = (vehicleId: string, rowId: string, role: string) => {
     setVehicleAssignments(prev => ({
       ...prev,
-      [vehicleId]: (prev[vehicleId] || []).map(a => a.id === rowId ? { ...a, role } : a)
+      [vehicleId]: (prev[vehicleId] || []).map(a => {
+        if (a.id === rowId) {
+          // Si hay un empleado asignado, verificar si está disponible y tiene el nuevo rol
+          if (a.employeeId && role) {
+            const employee = availableEmployees.find(e => e.id === a.employeeId);
+            const hasNewRole = employee?.roles.includes(role);
+            
+            // Si el empleado no está disponible o no tiene el nuevo rol, limpiar la asignación
+            if (!employee || !hasNewRole) {
+              return { ...a, role, employeeId: '' };
+            }
+          }
+          return { ...a, role };
+        }
+        return a;
+      })
     }));
   };
 
@@ -462,7 +522,9 @@ export default function Dashboard() {
       }));
     });
     
-    setVehicleAssignments(newAssignments);
+    // Reconciliar asignaciones para limpiar empleados no disponibles o sin el rol
+    const { updated: reconciledAssignments } = reconcileAssignments(newAssignments);
+    setVehicleAssignments(reconciledAssignments);
     
     // Cargar comentarios por vehículo y DEPOSITO
     try {

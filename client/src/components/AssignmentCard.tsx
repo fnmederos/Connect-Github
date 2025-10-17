@@ -95,63 +95,76 @@ export default function AssignmentCard({
 
       {/* Filas de asignaciones - Lista compacta */}
       <div className="space-y-1">
-        {assignments.map((row) => (
-          <div key={row.id} className="grid grid-cols-[100px_1fr_1fr_auto] gap-2 items-center">
-            {/* Horario */}
-            <Input
-              type="time"
-              value={row.time}
-              onChange={(e) => onUpdateTime(row.id, e.target.value)}
-              className="h-8 text-xs"
-              data-testid={`input-time-${row.id}`}
-            />
+        {assignments.map((row) => {
+          // Filtrar empleados por rol seleccionado
+          const filteredEmployees = row.role 
+            ? availableEmployees.filter(emp => emp.roles.includes(row.role))
+            : availableEmployees;
 
-            {/* Función */}
-            <Select
-              value={row.role}
-              onValueChange={(value) => onUpdateRole(row.id, value)}
-            >
-              <SelectTrigger className="h-8 text-xs" data-testid={`select-role-${row.id}`}>
-                <SelectValue placeholder="Función" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableRoles.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          return (
+            <div key={row.id} className="grid grid-cols-[100px_1fr_1fr_auto] gap-2 items-center">
+              {/* Horario */}
+              <Input
+                type="time"
+                value={row.time}
+                onChange={(e) => onUpdateTime(row.id, e.target.value)}
+                className="h-8 text-xs"
+                data-testid={`input-time-${row.id}`}
+              />
 
-            {/* Personal */}
-            <Select
-              value={row.employeeId}
-              onValueChange={(value) => onUpdateEmployee(row.id, value)}
-            >
-              <SelectTrigger className="h-8 text-xs" data-testid={`select-employee-${row.id}`}>
-                <SelectValue placeholder="Personal" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableEmployees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {/* Función */}
+              <Select
+                value={row.role}
+                onValueChange={(value) => onUpdateRole(row.id, value)}
+              >
+                <SelectTrigger className="h-8 text-xs" data-testid={`select-role-${row.id}`}>
+                  <SelectValue placeholder="Función" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoles.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {/* Botón eliminar */}
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => onRemoveRow(row.id)}
-              className="h-8 w-8"
-              data-testid={`button-remove-row-${row.id}`}
-            >
-              <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-            </Button>
-          </div>
-        ))}
+              {/* Personal */}
+              <Select
+                value={row.employeeId}
+                onValueChange={(value) => onUpdateEmployee(row.id, value)}
+              >
+                <SelectTrigger className="h-8 text-xs" data-testid={`select-employee-${row.id}`}>
+                  <SelectValue placeholder="Personal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredEmployees.length > 0 ? (
+                    filteredEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-employees" disabled>
+                      No hay personal con esta función
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {/* Botón eliminar */}
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onRemoveRow(row.id)}
+                className="h-8 w-8"
+                data-testid={`button-remove-row-${row.id}`}
+              >
+                <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Botón agregar */}
