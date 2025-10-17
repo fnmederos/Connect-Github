@@ -430,10 +430,22 @@ export default function Dashboard() {
     // Cargar comentarios por vehículo y DEPOSITO
     try {
       const parsedComments = JSON.parse(template.comments || '{}');
-      setVehicleComments(parsedComments);
+      // Verificar si es un objeto válido (plantilla nueva) o necesita conversión
+      if (typeof parsedComments === 'object' && parsedComments !== null && !Array.isArray(parsedComments)) {
+        setVehicleComments(parsedComments);
+      } else {
+        // Caso inesperado: establecer vacío
+        setVehicleComments({});
+      }
     } catch {
-      // Si comments es un string simple (backward compatibility), establecer vacío
-      setVehicleComments({});
+      // Si JSON.parse falla, es un string simple (plantilla antigua)
+      // Distribuir el comentario a todos los vehículos de la plantilla
+      const legacyComment = template.comments || '';
+      const commentsPerVehicle: Record<string, string> = {};
+      template.vehicleIds.forEach(vehicleId => {
+        commentsPerVehicle[vehicleId] = legacyComment;
+      });
+      setVehicleComments(commentsPerVehicle);
     }
     
     const depositoData = template.depositoAssignments ? JSON.parse(template.depositoAssignments) : [];
