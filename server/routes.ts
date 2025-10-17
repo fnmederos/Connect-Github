@@ -282,6 +282,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/daily-assignments/by-date/:date", async (req, res) => {
+    try {
+      const { date } = req.params;
+      const deletedCount = await storage.deleteDailyAssignmentsByDate(date);
+      
+      res.status(200).json({ deletedCount });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Employee Absences routes
   app.get("/api/absences", async (req, res) => {
     try {
