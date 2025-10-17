@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Truck, Plus, X } from "lucide-react";
 import {
   Select,
@@ -23,11 +24,13 @@ interface AssignmentCardProps {
   availableEmployees: Employee[];
   availableRoles: string[];
   assignments: AssignmentRow[];
+  comments: string;
   onAddRow: () => void;
   onRemoveRow: (rowId: string) => void;
   onUpdateRole: (rowId: string, role: string) => void;
   onUpdateEmployee: (rowId: string, employeeId: string) => void;
   onUpdateTime: (rowId: string, time: string) => void;
+  onUpdateComments: (comments: string) => void;
 }
 
 export default function AssignmentCard({
@@ -35,11 +38,13 @@ export default function AssignmentCard({
   availableEmployees,
   availableRoles,
   assignments = [],
+  comments,
   onAddRow,
   onRemoveRow,
   onUpdateRole,
   onUpdateEmployee,
   onUpdateTime,
+  onUpdateComments,
 }: AssignmentCardProps) {
   return (
     <Card className="p-6" data-testid={`card-assignment-${vehicle.id}`}>
@@ -140,6 +145,17 @@ export default function AssignmentCard({
           <Plus className="w-3 h-3" />
           Agregar línea
         </Button>
+      </div>
+
+      {/* Campo de comentarios para este vehículo */}
+      <div className="mt-4">
+        <Textarea
+          value={comments}
+          onChange={(e) => onUpdateComments(e.target.value)}
+          placeholder="Comentarios para este vehículo..."
+          className="min-h-[80px] text-sm"
+          data-testid={`textarea-comments-${vehicle.id}`}
+        />
       </div>
     </Card>
   );
