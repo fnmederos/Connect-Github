@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Calendar as CalendarIcon, Download } from "lucide-react";
+import { ChevronRight, Calendar as CalendarIcon, Download, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DailyAssignment, AssignmentRowData, DepositoTimeSlot } from "@shared/schema";
@@ -12,12 +12,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import ExportExcelDialog from "@/components/ExportExcelDialog";
 
 export default function History() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   // Fetch all daily assignments
   const { data: allAssignments = [] } = useQuery<DailyAssignment[]>({
@@ -42,6 +56,56 @@ export default function History() {
   };
 
   const selectedAssignments = selectedDate ? assignmentsByDate[selectedDate] : [];
+
+  // Mutación para eliminar todas las asignaciones de un día
+  const deleteAssignmentsMutation = useMutation({
+    mutationFn: async (date: string) => {
+      const assignmentsToDelete = assignmentsByDate[date];
+      
+      if (!assignmentsToDelete || assignmentsToDelete.length === 0) {
+        throw new Error('No hay asignaciones para eliminar');
+      }
+      
+      // Eliminar cada asignación del día
+      const deletePromises = assignmentsToDelete.map(async assignment => {
+        const response = await fetch(`/api/daily-assignments/${assignment.id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Error al eliminar asignación: ${error}`);
+        }
+        
+        return response;
+      });
+      
+      await Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/daily-assignments'] });
+      setSelectedDate(null); // Reset selected date to avoid undefined access
+      setDetailDialogOpen(false);
+      setDeleteDialogOpen(false);
+      toast({
+        title: "Planificación eliminada",
+        description: "La planificación del día ha sido eliminada correctamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar la planificación: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteDay = () => {
+    if (selectedDate) {
+      deleteAssignmentsMutation.mutate(selectedDate);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,7 +296,15 @@ export default function History() {
             })()}
           </div>
 
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-between gap-2 mt-4">
+            <Button 
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+              data-testid="button-delete-day"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar Día
+            </Button>
             <Button 
               variant="outline" 
               onClick={() => setDetailDialogOpen(false)}
@@ -250,6 +322,35 @@ export default function History() {
         onOpenChange={setExportDialogOpen}
         assignments={allAssignments}
       />
+
+      {/* Dialog de confirmación para eliminar */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-confirm-delete">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar planificación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminarán todas las asignaciones del día{' '}
+              {selectedDate && format(parseISO(selectedDate), "PPP", { locale: es })}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={deleteAssignmentsMutation.isPending}
+              data-testid="button-cancel-delete"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDay}
+              disabled={deleteAssignmentsMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteAssignmentsMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

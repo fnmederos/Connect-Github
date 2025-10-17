@@ -7,6 +7,7 @@ import { CalendarIcon, Download } from "lucide-react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import type { DailyAssignment } from "@shared/schema";
 
@@ -19,6 +20,7 @@ interface ExportExcelDialogProps {
 export default function ExportExcelDialog({ open, onOpenChange, assignments }: ExportExcelDialogProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const { toast } = useToast();
 
   const handleExport = () => {
     if (!startDate || !endDate) {
@@ -37,6 +39,11 @@ export default function ExportExcelDialog({ open, onOpenChange, assignments }: E
     });
 
     if (filteredAssignments.length === 0) {
+      toast({
+        title: "Sin datos para exportar",
+        description: "No hay planificaciones en el rango de fechas seleccionado.",
+        variant: "destructive",
+      });
       return;
     }
 
