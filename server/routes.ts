@@ -6,7 +6,8 @@ import {
   insertDailyAssignmentSchema,
   insertEmployeeSchema,
   insertVehicleSchema,
-  insertTemplateSchema
+  insertTemplateSchema,
+  insertRoleSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -156,6 +157,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedRoles = await storage.saveRoles(roles);
       res.json(updatedRoles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Individual Role CRUD routes
+  app.get("/api/roles-detailed", async (req, res) => {
+    try {
+      const roles = await storage.getAllRolesDetailed();
+      res.json(roles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/roles-detailed", async (req, res) => {
+    try {
+      const result = insertRoleSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const role = await storage.createRole(result.data);
+      res.status(201).json(role);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/roles-detailed/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertRoleSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const role = await storage.updateRole(id, result.data);
+      
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      
+      res.json(role);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/roles-detailed/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteRole(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      
+      res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
