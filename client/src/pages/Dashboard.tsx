@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
   const [vehicleComments, setVehicleComments] = useState<Record<string, string>>({});
   const [depositoTimeSlots, setDepositoTimeSlots] = useState<DepositoTimeSlot[]>([]);
+  const [depositoComments, setDepositoComments] = useState<string>("");
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
@@ -266,7 +267,8 @@ export default function Dashboard() {
             vehicleLicensePlate: '',
             assignmentRows: JSON.stringify([]),
             comments: '',
-            depositoAssignments: JSON.stringify(depositoTimeSlots)
+            depositoAssignments: JSON.stringify(depositoTimeSlots),
+            depositoComments: depositoComments
           }),
         });
 
@@ -298,7 +300,8 @@ export default function Dashboard() {
               vehicleLicensePlate: vehicle.licensePlate,
               assignmentRows: JSON.stringify(assignmentRowsData),
               comments: vehicleComments[vehicle.id] || '',
-              depositoAssignments: JSON.stringify(depositoTimeSlots)
+              depositoAssignments: JSON.stringify(depositoTimeSlots),
+              depositoComments: depositoComments
             }),
           });
 
@@ -354,7 +357,8 @@ export default function Dashboard() {
         vehicleIds: selectedVehicleIds,
         assignmentData: JSON.stringify(assignmentData),
         comments: JSON.stringify(commentsData),
-        depositoAssignments: JSON.stringify(depositoTimeSlots)
+        depositoAssignments: JSON.stringify(depositoTimeSlots),
+        depositoComments: depositoComments
       });
     },
     onSuccess: () => {
@@ -450,6 +454,9 @@ export default function Dashboard() {
     
     const depositoData = template.depositoAssignments ? JSON.parse(template.depositoAssignments) : [];
     setDepositoTimeSlots(depositoData);
+    
+    // Cargar comentarios de DEPOSITO
+    setDepositoComments(template.depositoComments || '');
     
     toast({
       title: "Plantilla cargada",
@@ -568,6 +575,7 @@ export default function Dashboard() {
             <DepositoSection
               timeSlots={depositoTimeSlots}
               availableEmployees={availableEmployees}
+              comments={depositoComments}
               onAddTimeSlot={handleAddDepositoTimeSlot}
               onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
               onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
@@ -575,6 +583,7 @@ export default function Dashboard() {
               onRemoveEmployee={handleRemoveDepositoEmployee}
               onUpdateEmployee={handleUpdateDepositoEmployee}
               onToggleEncargado={handleToggleDepositoEncargado}
+              onUpdateComments={setDepositoComments}
             />
           </div>
         </div>

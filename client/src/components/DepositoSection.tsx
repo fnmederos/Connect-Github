@@ -7,6 +7,7 @@ import type { Employee, DepositoTimeSlot, DepositoEmployeeData } from "@shared/s
 interface DepositoSectionProps {
   timeSlots: DepositoTimeSlot[];
   availableEmployees: Employee[];
+  comments: string;
   onAddTimeSlot: () => void;
   onRemoveTimeSlot: (slotId: string) => void;
   onUpdateTimeSlot: (slotId: string, timeSlot: string) => void;
@@ -14,11 +15,13 @@ interface DepositoSectionProps {
   onRemoveEmployee: (slotId: string, employeeIndex: number) => void;
   onUpdateEmployee: (slotId: string, employeeIndex: number, employeeId: string) => void;
   onToggleEncargado: (slotId: string, employeeIndex: number) => void;
+  onUpdateComments: (comments: string) => void;
 }
 
 export default function DepositoSection({
   timeSlots,
   availableEmployees,
+  comments,
   onAddTimeSlot,
   onRemoveTimeSlot,
   onUpdateTimeSlot,
@@ -26,6 +29,7 @@ export default function DepositoSection({
   onRemoveEmployee,
   onUpdateEmployee,
   onToggleEncargado,
+  onUpdateComments,
 }: DepositoSectionProps) {
   return (
     <Card className="p-4">
@@ -139,6 +143,17 @@ export default function DepositoSection({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Comments section */}
+      <div className="mt-4">
+        <textarea
+          value={comments}
+          onChange={(e) => onUpdateComments(e.target.value)}
+          placeholder="Comentarios del depósito..."
+          className="w-full px-3 py-2 border rounded-md text-sm bg-background text-foreground min-h-[80px] resize-y"
+          data-testid="textarea-deposito-comments"
+        />
       </div>
     </Card>
   );

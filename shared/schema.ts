@@ -30,6 +30,8 @@ export const dailyAssignments = pgTable("daily_assignments", {
   // DEPOSITO assignments as JSON
   // Format: [{ timeSlot, employees: [{ employeeId, employeeName, isEncargado }] }]
   depositoAssignments: text("deposito_assignments").notNull().default('[]'),
+  // Comments for DEPOSITO section
+  depositoComments: text("deposito_comments").notNull().default(''),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -53,6 +55,8 @@ export const templates = pgTable("templates", {
   comments: text("comments").notNull().default(''),
   // DEPOSITO assignments for template
   depositoAssignments: text("deposito_assignments").notNull().default('[]'),
+  // Comments for DEPOSITO section in template
+  depositoComments: text("deposito_comments").notNull().default(''),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

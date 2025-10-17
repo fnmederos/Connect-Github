@@ -204,6 +204,15 @@ export default function History() {
                           </div>
                         </div>
                       ))}
+                      
+                      {assignmentWithDeposito.depositoComments && (
+                        <div className="mt-4 pt-4 border-t">
+                          <div className="font-medium text-sm mb-2">Comentarios</div>
+                          <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                            {assignmentWithDeposito.depositoComments}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
