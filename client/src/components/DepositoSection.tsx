@@ -28,105 +28,120 @@ export default function DepositoSection({
   onToggleEncargado,
 }: DepositoSectionProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">DEPOSITO</h2>
+    <div className="border-4 border-red-500 rounded-lg p-4 bg-red-500/5">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-red-600">DEPOSITO</h2>
         <Button
           onClick={onAddTimeSlot}
           size="sm"
+          className="h-8 text-xs bg-red-500 hover:bg-red-600 text-white"
           data-testid="button-add-timeslot"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 mr-1" />
           Agregar Horario
         </Button>
       </div>
 
-      <div className="space-y-4">
+      {/* Time Slots - Cajas verdes */}
+      <div className="space-y-3">
         {timeSlots.map((slot) => (
-          <Card key={slot.id} className="p-4" data-testid={`card-timeslot-${slot.id}`}>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={slot.timeSlot}
-                  onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
-                  placeholder="08:00-12:00"
-                  className="flex-1 px-3 py-2 border rounded-md"
-                  data-testid={`input-timeslot-${slot.id}`}
-                />
-                <Button
-                  onClick={() => onRemoveTimeSlot(slot.id)}
-                  variant="ghost"
-                  size="icon"
-                  data-testid={`button-remove-timeslot-${slot.id}`}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {slot.employees.map((employee, index) => {
-                  const selectedEmployee = availableEmployees.find(e => e.id === employee.employeeId);
-                  const isEncargado = employee.isEncargado;
-                  
-                  return (
-                    <div
-                      key={index}
-                      className={`flex items-center gap-2 p-2 rounded-md ${
-                        isEncargado ? 'bg-primary/10 border-2 border-primary' : 'bg-muted'
-                      }`}
-                      data-testid={`deposito-employee-${slot.id}-${index}`}
-                    >
-                      {isEncargado && (
-                        <span className="font-bold text-primary text-sm px-2">ENCARGADO</span>
-                      )}
-                      <Select
-                        value={employee.employeeId}
-                        onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
-                      >
-                        <SelectTrigger className="flex-1" data-testid={`select-employee-${slot.id}-${index}`}>
-                          <SelectValue placeholder="Seleccionar empleado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableEmployees.map((emp) => (
-                            <SelectItem key={emp.id} value={emp.id}>
-                              {emp.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={() => onToggleEncargado(slot.id, index)}
-                        variant={isEncargado ? "default" : "outline"}
-                        size="sm"
-                        data-testid={`button-toggle-encargado-${slot.id}-${index}`}
-                      >
-                        {isEncargado ? "Encargado" : "Hacer Encargado"}
-                      </Button>
-                      <Button
-                        onClick={() => onRemoveEmployee(slot.id, index)}
-                        variant="ghost"
-                        size="icon"
-                        data-testid={`button-remove-employee-${slot.id}-${index}`}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-
+          <div
+            key={slot.id}
+            className="border-3 border-green-600 bg-green-500/10 rounded-md p-3"
+            data-testid={`card-timeslot-${slot.id}`}
+          >
+            {/* Time slot header */}
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="text"
+                value={slot.timeSlot}
+                onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
+                placeholder="08:00-12:00"
+                className="flex-1 px-2 py-1 border-2 border-green-600 bg-white rounded-md text-sm font-medium"
+                data-testid={`input-timeslot-${slot.id}`}
+              />
               <Button
-                onClick={() => onAddEmployee(slot.id)}
-                variant="outline"
-                size="sm"
-                data-testid={`button-add-employee-${slot.id}`}
+                onClick={() => onRemoveTimeSlot(slot.id)}
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-red-500/20"
+                data-testid={`button-remove-timeslot-${slot.id}`}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar Empleado
+                <X className="w-4 h-4 text-red-600" />
               </Button>
             </div>
-          </Card>
+
+            {/* Employees inside green box */}
+            <div className="space-y-1.5">
+              {slot.employees.map((employee, index) => {
+                const isEncargado = employee.isEncargado;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-2 p-2 rounded border-2 ${
+                      isEncargado 
+                        ? 'bg-yellow-400/20 border-yellow-600' 
+                        : 'bg-orange-500/10 border-orange-500'
+                    }`}
+                    data-testid={`deposito-employee-${slot.id}-${index}`}
+                  >
+                    {isEncargado && (
+                      <span className="font-bold text-yellow-700 text-xs px-1.5 bg-yellow-400/40 rounded">
+                        ENCARGADO
+                      </span>
+                    )}
+                    <Select
+                      value={employee.employeeId}
+                      onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
+                    >
+                      <SelectTrigger className="flex-1 h-7 text-xs border-transparent bg-transparent" data-testid={`select-employee-${slot.id}-${index}`}>
+                        <SelectValue placeholder="Seleccionar empleado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableEmployees.map((emp) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => onToggleEncargado(slot.id, index)}
+                      variant={isEncargado ? "default" : "outline"}
+                      size="sm"
+                      className="h-6 text-xs px-2"
+                      data-testid={`button-toggle-encargado-${slot.id}-${index}`}
+                    >
+                      {isEncargado ? "✓" : "E"}
+                    </Button>
+                    <Button
+                      onClick={() => onRemoveEmployee(slot.id, index)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      data-testid={`button-remove-employee-${slot.id}-${index}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Add employee button */}
+            <Button
+              onClick={() => onAddEmployee(slot.id)}
+              variant="outline"
+              size="sm"
+              className="mt-2 h-7 text-xs border-green-600 hover:bg-green-500/20"
+              data-testid={`button-add-employee-${slot.id}`}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Agregar Empleado
+            </Button>
+          </div>
         ))}
       </div>
     </div>
