@@ -75,7 +75,7 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private employees: Map<string, Employee>;
   private vehicles: Map<string, Vehicle>;
-  private roles: string[];
+  private roles: Map<string, Role>;
   private employeeAbsences: Map<string, EmployeeAbsence>;
   private dailyAssignments: Map<string, DailyAssignment>;
   private templates: Map<string, Template>;
@@ -83,10 +83,17 @@ export class MemStorage implements IStorage {
   constructor() {
     this.employees = new Map();
     this.vehicles = new Map();
-    this.roles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
+    this.roles = new Map();
     this.employeeAbsences = new Map();
     this.dailyAssignments = new Map();
     this.templates = new Map();
+    
+    // Initialize with default roles
+    const defaultRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
+    defaultRoles.forEach(name => {
+      const id = randomUUID();
+      this.roles.set(id, { id, name });
+    });
   }
 
   // Employee methods
@@ -147,68 +154,72 @@ export class MemStorage implements IStorage {
 
   // Roles methods (legacy array-based)
   async getAllRoles(): Promise<string[]> {
-    return [...this.roles];
+    return Array.from(this.roles.values()).map(r => r.name);
   }
 
   async saveRoles(roles: string[]): Promise<string[]> {
-    this.roles = [...roles];
-    return this.roles;
+    // Check for duplicates in the input array (case-insensitive)
+    const normalizedNames = roles.map(name => name.toLowerCase());
+    const uniqueNames = new Set(normalizedNames);
+    if (uniqueNames.size !== roles.length) {
+      throw new Error('Duplicate role names are not allowed');
+    }
+    
+    // Clear existing and add new roles
+    this.roles.clear();
+    roles.forEach(name => {
+      const id = randomUUID();
+      this.roles.set(id, { id, name });
+    });
+    return roles;
   }
 
   // Roles CRUD methods (individual role management)
   async getRole(id: string): Promise<Role | undefined> {
-    // MemStorage doesn't support detailed roles yet, convert from array
-    const roleIndex = parseInt(id);
-    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
-      return undefined;
-    }
-    return {
-      id: id,
-      name: this.roles[roleIndex]
-    };
+    return this.roles.get(id);
   }
 
   async getAllRolesDetailed(): Promise<Role[]> {
-    // MemStorage doesn't support detailed roles yet, convert from array
-    return this.roles.map((name, index) => ({
-      id: index.toString(),
-      name
-    }));
+    return Array.from(this.roles.values());
   }
 
   async createRole(insertRole: InsertRole): Promise<Role> {
-    // MemStorage doesn't support detailed roles yet, add to array
-    this.roles.push(insertRole.name);
-    const id = (this.roles.length - 1).toString();
-    return {
-      id,
-      name: insertRole.name
-    };
+    // Check for duplicate name
+    const existingRole = Array.from(this.roles.values()).find(
+      r => r.name.toLowerCase() === insertRole.name.toLowerCase()
+    );
+    if (existingRole) {
+      throw new Error(`Role with name "${insertRole.name}" already exists`);
+    }
+    
+    const id = randomUUID();
+    const role: Role = { id, name: insertRole.name };
+    this.roles.set(id, role);
+    return role;
   }
 
   async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
-    // MemStorage doesn't support detailed roles yet, update in array
-    const roleIndex = parseInt(id);
-    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
-      return undefined;
+    const role = this.roles.get(id);
+    if (!role) return undefined;
+    
+    // Check for duplicate name if name is being updated
+    if (roleData.name && roleData.name !== role.name) {
+      const newName = roleData.name;
+      const existingRole = Array.from(this.roles.values()).find(
+        r => r.id !== id && r.name.toLowerCase() === newName.toLowerCase()
+      );
+      if (existingRole) {
+        throw new Error(`Role with name "${newName}" already exists`);
+      }
     }
-    if (roleData.name) {
-      this.roles[roleIndex] = roleData.name;
-    }
-    return {
-      id,
-      name: this.roles[roleIndex]
-    };
+    
+    const updated = { ...role, ...roleData };
+    this.roles.set(id, updated);
+    return updated;
   }
 
   async deleteRole(id: string): Promise<boolean> {
-    // MemStorage doesn't support detailed roles yet, remove from array
-    const roleIndex = parseInt(id);
-    if (isNaN(roleIndex) || roleIndex < 0 || roleIndex >= this.roles.length) {
-      return false;
-    }
-    this.roles.splice(roleIndex, 1);
-    return true;
+    return this.roles.delete(id);
   }
 
   // Employee Absence methods

@@ -9,7 +9,7 @@ This is a logistics management application for planning operations and resource 
 - Vehicle fleet management, including dynamic selection and reordering
 - Daily assignment planning, scheduling, and historical tracking
 - Employee absence tracking
-- Role customization and management
+- Role/function CRUD management (create, edit, delete employee roles)
 - Depot/warehouse personnel scheduling with supervisor (Encargado) designation
 - Comments per vehicle in daily assignments
 - Excel export of historical daily assignments
@@ -60,10 +60,11 @@ Preferred communication style: Simple, everyday language.
 ### Feature Specifications
 
 - **Dashboard Workflow:** Manual vehicle selection with an "Ingresar Vehículos" button, multi-select dialog for vehicles, and manual row creation for assignments.
-- **History Feature:** Dedicated page (`/history`) for viewing and managing saved daily assignments, including detailed views and deletion functionality.
+- **History Feature:** Dedicated page (`/history`) for viewing and managing saved daily assignments, including detailed views and deletion functionality with confirmation dialogs.
+- **Roles Management:** Dedicated page (`/roles`) for CRUD operations on employee roles/functions. Supports creating, editing, and deleting roles with uniqueness validation and proper error handling (409 Conflict for duplicates).
 - **Comments and Depot Features:** Each vehicle card has a dedicated comments textarea. A separate DEPOSITO section allows scheduling warehouse personnel with multiple time slots, employee assignments, and a special toggleable ENCARGADO (Supervisor) position.
-- **Excel Export:** Functionality to export historical daily assignments within a selected date range to an .xlsx file, including vehicle, driver, and assistant details.
-- **Vehicle Reordering:** Dashboard vehicle cards can be reordered using up/down arrow buttons.
+- **Excel Export:** Functionality to export historical daily assignments within a selected date range to an .xlsx file, including vehicle, driver, and assistant details. User feedback provided when no data matches the selected range.
+- **Vehicle Reordering:** Dashboard vehicle cards can be reordered using up/down arrow buttons with persistent order preservation.
 
 ## External Dependencies
 

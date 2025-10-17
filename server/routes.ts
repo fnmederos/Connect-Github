@@ -184,6 +184,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const role = await storage.createRole(result.data);
       res.status(201).json(role);
     } catch (error: any) {
+      // Handle duplicate role errors
+      if (error.message.includes('already exists') || error.message.includes('duplicate') || error.message.includes('unique')) {
+        return res.status(409).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
@@ -206,6 +210,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(role);
     } catch (error: any) {
+      // Handle duplicate role errors
+      if (error.message.includes('already exists') || error.message.includes('duplicate') || error.message.includes('unique')) {
+        return res.status(409).json({ message: error.message });
+      }
       res.status(500).json({ message: error.message });
     }
   });
