@@ -201,6 +201,28 @@ export default function Dashboard() {
     });
   }, [availableEmployees, employees]);
 
+  // Efecto para limpiar asignaciones de depósito cuando cambia la disponibilidad
+  useEffect(() => {
+    setDepositoTimeSlots(prev => {
+      const availableEmployeeIds = new Set(availableEmployees.map(e => e.id));
+      let cleanedCount = 0;
+      
+      const updated = prev.map(slot => {
+        const cleanedEmployees = slot.employees.map(emp => {
+          if (emp.employeeId && !availableEmployeeIds.has(emp.employeeId)) {
+            cleanedCount++;
+            return { ...emp, employeeId: '', employeeName: '' };
+          }
+          return emp;
+        });
+        
+        return { ...slot, employees: cleanedEmployees };
+      });
+      
+      return cleanedCount > 0 ? updated : prev;
+    });
+  }, [availableEmployees]);
+
   // Calcular vehículos seleccionados basado en IDs
   const selectedVehicles = useMemo(() => {
     return selectedVehicleIds
