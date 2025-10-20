@@ -109,6 +109,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 20, 2025)
 
+- **Added repeatable employees feature:** Implemented support for employees (e.g., third-party contractors, outsourced companies) who can be assigned multiple times across different vehicles or even within the same vehicle. This feature bypasses the duplicate prevention system for specific employees while maintaining normal duplicate prevention for all others.
+  - **Database Schema:** Added `allowDuplicates` boolean field (default: false) to the `employees` table via migration.
+  - **Employee Form:** Added "Permitir duplicados" checkbox in employee creation/edit dialog with clear explanation: "Permite asignar este empleado múltiples veces (ej: personal de empresas tercerizadas)".
+  - **Dashboard Logic - Three Key Updates:**
+    1. **Available Employees Panel (`unassignedEmployees`)**: Modified to exclude only non-repeatable employees from the assigned set, keeping repeatable employees visible in the panel even after assignment.
+    2. **Dropdown Filtering (`allAssignedEmployeeIds`)**: Updated to skip employees with `allowDuplicates=true` when building the exclusion Set, allowing them to appear in assignment dropdowns even when already assigned.
+    3. **Automatic Cleanup (`removeDuplicateAssignments`)**: Enhanced to check `employee?.allowDuplicates` before removing duplicates, preserving repeatable employee assignments during reconciliation.
+  - **How It Works:** Employees with `allowDuplicates=false` (default) have normal duplicate prevention. Employees with `allowDuplicates=true` can be assigned multiple times, stay visible in the Available Employees panel, and survive automatic reconciliation. Feature works for both vehicle and depot assignments.
 - **Added color-coded role badges:** Implemented visual distinction for employee roles with color-coded badges throughout the application. CHOFER roles display with green/emerald badges (CH), ACOMPAÑANTE roles with amber/orange badges (AC). This minimal, elegant design improves at-a-glance role identification in both the Dashboard and exported images.
 - **Fixed ENCARGADO badge alignment:** Corrected the alignment of the ENCARGADO badge in the depot section by implementing a fixed-width grid layout. The badge now maintains consistent alignment whether present or not, improving visual consistency.
 - **Redesigned image export for maximum density:** Modified the image export layout to use a compact, horizontal format where each vehicle's complete information (name, license plate, and all assignments) appears in a single line. Uses light gray background with black text for optimal contrast and readability. This design allows many more vehicles to fit in the exported image without requiring zoom, making it ideal for sharing planning information with staff.
