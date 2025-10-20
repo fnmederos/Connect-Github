@@ -7,6 +7,7 @@ import type { Employee, DepositoTimeSlot, DepositoEmployeeData } from "@shared/s
 interface DepositoSectionProps {
   timeSlots: DepositoTimeSlot[];
   availableEmployees: Employee[];
+  allAssignedEmployeeIds: Set<string>;
   comments: string;
   onAddTimeSlot: () => void;
   onRemoveTimeSlot: (slotId: string) => void;
@@ -21,6 +22,7 @@ interface DepositoSectionProps {
 export default function DepositoSection({
   timeSlots,
   availableEmployees,
+  allAssignedEmployeeIds,
   comments,
   onAddTimeSlot,
   onRemoveTimeSlot,
@@ -81,6 +83,11 @@ export default function DepositoSection({
               {slot.employees.map((employee, index) => {
                 const isEncargado = employee.isEncargado;
                 
+                // Filtrar empleados disponibles: excluir los ya asignados, excepto el actual
+                const filteredEmployees = availableEmployees.filter(emp => 
+                  !allAssignedEmployeeIds.has(emp.id) || emp.id === employee.employeeId
+                );
+                
                 return (
                   <div
                     key={index}
@@ -100,7 +107,7 @@ export default function DepositoSection({
                         <SelectValue placeholder="Seleccionar empleado" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableEmployees.map((emp) => (
+                        {filteredEmployees.map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
                             {emp.name}
                           </SelectItem>

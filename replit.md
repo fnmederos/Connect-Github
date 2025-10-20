@@ -66,11 +66,12 @@ Preferred communication style: Simple, everyday language.
 - **Excel Export:** Functionality to export historical daily assignments within a selected date range to an .xlsx file, including vehicle, driver, and assistant details. User feedback provided when no data matches the selected range.
 - **Vehicle Reordering:** Dashboard vehicle cards can be reordered using up/down arrow buttons with persistent order preservation.
 - **Role-Based Filtering:** Assignment dropdowns filter employees by their assigned roles, showing only employees who have the specific role required for each position. Implemented with intelligent filtering that respects employee absence status and role assignments.
-- **Duplicate Prevention System:** Multi-layered protection against duplicate employee assignments:
-  - **UI Prevention:** Dropdown filters automatically exclude employees already assigned to other vehicles/roles, except for the current row's employee.
-  - **Automatic Reconciliation:** Background process detects and clears invalid assignments when employees become unavailable or lose required roles.
+- **Duplicate Prevention System:** Multi-layered protection against duplicate employee assignments across vehicles AND depot:
+  - **UI Prevention:** Dropdown filters automatically exclude employees already assigned to other vehicles/roles/depot slots, except for the current row's employee. Works consistently across both vehicle assignments and depot (DEPOSITO) assignments.
+  - **Automatic Reconciliation:** Background process detects and clears invalid assignments when employees become unavailable or lose required roles for both vehicle and depot assignments.
   - **Template Sanitization:** When loading templates, duplicates are automatically detected and removed, with user notification via toast messages.
   - **Continuous Validation:** System monitors availability changes and automatically reconciles assignments in real-time.
+  - **Implementation Details:** Dashboard.tsx calculates `allAssignedEmployeeIds` Set that aggregates both vehicle rows and depot slot employees, passing it to both AssignmentCard and DepositoSection components. Each component filters available employees against this shared Set while allowing the currently selected employee to remain visible for editing.
 
 ## External Dependencies
 

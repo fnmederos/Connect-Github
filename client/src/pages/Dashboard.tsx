@@ -792,19 +792,45 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <DepositoSection
-                timeSlots={depositoTimeSlots}
-                availableEmployees={availableEmployees}
-                comments={depositoComments}
-                onAddTimeSlot={handleAddDepositoTimeSlot}
-                onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
-                onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
-                onAddEmployee={handleAddDepositoEmployee}
-                onRemoveEmployee={handleRemoveDepositoEmployee}
-                onUpdateEmployee={handleUpdateDepositoEmployee}
-                onToggleEncargado={handleToggleDepositoEncargado}
-                onUpdateComments={setDepositoComments}
-              />
+              {/* Calcular todos los empleados ya asignados (vehículos + depósito) */}
+              {(() => {
+                const allAssignedEmployeeIds = new Set<string>();
+                
+                // Empleados asignados en vehículos
+                Object.values(vehicleAssignments).forEach(rows => {
+                  rows.forEach(row => {
+                    if (row.employeeId) {
+                      allAssignedEmployeeIds.add(row.employeeId);
+                    }
+                  });
+                });
+                
+                // Empleados asignados en depósito
+                depositoTimeSlots.forEach(slot => {
+                  slot.employees.forEach(emp => {
+                    if (emp.employeeId) {
+                      allAssignedEmployeeIds.add(emp.employeeId);
+                    }
+                  });
+                });
+                
+                return (
+                  <DepositoSection
+                    timeSlots={depositoTimeSlots}
+                    availableEmployees={availableEmployees}
+                    allAssignedEmployeeIds={allAssignedEmployeeIds}
+                    comments={depositoComments}
+                    onAddTimeSlot={handleAddDepositoTimeSlot}
+                    onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
+                    onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
+                    onAddEmployee={handleAddDepositoEmployee}
+                    onRemoveEmployee={handleRemoveDepositoEmployee}
+                    onUpdateEmployee={handleUpdateDepositoEmployee}
+                    onToggleEncargado={handleToggleDepositoEncargado}
+                    onUpdateComments={setDepositoComments}
+                  />
+                );
+              })()}
             </div>
 
             {/* Columna lateral - Personal disponible */}
