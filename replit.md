@@ -64,6 +64,7 @@ Preferred communication style: Simple, everyday language.
 - **Roles Management:** Dedicated page (`/roles`) for CRUD operations on employee roles/functions. Supports creating, editing, and deleting roles with uniqueness validation and proper error handling (409 Conflict for duplicates).
 - **Comments and Depot Features:** Each vehicle card has a dedicated comments textarea. A separate DEPOSITO section allows scheduling warehouse personnel with multiple time slots, employee assignments, and a special toggleable ENCARGADO (Supervisor) position.
 - **Excel Export:** Functionality to export historical daily assignments within a selected date range to an .xlsx file, including vehicle, driver, and assistant details. User feedback provided when no data matches the selected range.
+- **Image Export:** Dashboard includes "Exportar como Imagen" button that generates a PNG file of the current daily planning using html2canvas. The exported image shows a clean, read-only view of vehicle assignments and depot scheduling without edit controls, optimized for sharing with staff. Filename includes the selected date (e.g., planificacion-2025-10-20.png). Button is disabled when no vehicles or depot slots are present.
 - **Vehicle Reordering:** Dashboard vehicle cards can be reordered using up/down arrow buttons with persistent order preservation.
 - **Role-Based Filtering:** Assignment dropdowns filter employees by their assigned roles, showing only employees who have the specific role required for each position. Implemented with intelligent filtering that respects employee absence status and role assignments.
 - **Duplicate Prevention System:** Multi-layered protection against duplicate employee assignments across vehicles AND depot:
@@ -93,6 +94,7 @@ Preferred communication style: Simple, everyday language.
 - **React Hook Form**: Form state management with Zod resolvers.
 - **React Day Picker**: Calendar component.
 - **xlsx**: For Excel file generation.
+- **html2canvas**: For capturing HTML elements as PNG images.
 
 ### Development Tools
 - **Vite**: Frontend build tool and dev server.
@@ -107,5 +109,6 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 20, 2025)
 
+- **Added image export functionality:** Implemented "Exportar como Imagen" button in Dashboard that captures the current daily planning (vehicles and depot assignments) as a PNG file using html2canvas. The exported image shows a clean, read-only view optimized for sharing with staff, with filenames including the selected date (e.g., planificacion-2025-10-20.png).
 - **Fixed duplicate prevention for depot assignments:** Extended the duplicate prevention system to include depot (DEPOSITO) employee assignments. Employees assigned to any vehicle or depot slot now properly disappear from all other dropdowns.
 - **Removed redundant "Funciones" navigation tab:** Eliminated the standalone "Funciones" tab from the main navigation menu. Role management is now exclusively accessed through the "Gestionar Funciones" button within the Empleados page, reducing UI clutter and redundancy.
