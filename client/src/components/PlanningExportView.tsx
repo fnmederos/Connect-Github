@@ -34,13 +34,15 @@ export default function PlanningExportView({
     return employee?.name || '';
   };
 
-  const getRoleBadgeClass = (role: string) => {
+  const getRoleColor = (role: string) => {
     if (role === 'CHOFER') {
-      return 'bg-emerald-200 text-emerald-900 border-emerald-400';
+      return 'text-emerald-700 font-semibold';
     } else if (role === 'ACOMPAÑANTE') {
-      return 'bg-amber-200 text-amber-900 border-amber-400';
+      return 'text-amber-600 font-semibold';
+    } else if (role === 'ENCARGADO') {
+      return 'text-blue-600 font-semibold';
     }
-    return 'bg-gray-200 text-gray-900 border-gray-400';
+    return 'text-gray-700';
   };
 
   return (
@@ -89,8 +91,8 @@ export default function PlanningExportView({
                           <span className="font-medium text-black">
                             {assignment.time}
                           </span>
-                          <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold border rounded ${getRoleBadgeClass(assignment.role)}`}>
-                            {assignment.role === 'CHOFER' ? 'CH' : assignment.role === 'ACOMPAÑANTE' ? 'AC' : assignment.role.substring(0, 2)}
+                          <span className={getRoleColor(assignment.role)}>
+                            {assignment.role}:
                           </span>
                           <span className="font-semibold text-black">
                             {getEmployeeName(assignment.employeeId)}
@@ -142,14 +144,14 @@ export default function PlanningExportView({
                       return (
                         <span key={index} className="flex items-center gap-1">
                           {index > 0 && <span className="text-gray-400">|</span>}
-                          {emp.isEncargado && (
-                            <span className="inline-block px-1 bg-blue-200 text-blue-900 text-xs font-bold rounded border border-blue-400">
-                              ENCARGADO
-                            </span>
-                          )}
                           <span className="font-semibold text-black">
                             {getEmployeeName(emp.employeeId)}
                           </span>
+                          {emp.isEncargado && (
+                            <span className="text-blue-600 font-bold text-xs">
+                              ENCARGADO
+                            </span>
+                          )}
                         </span>
                       );
                     })}

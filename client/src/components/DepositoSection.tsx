@@ -88,39 +88,40 @@ export default function DepositoSection({
                   !allAssignedEmployeeIds.has(emp.id) || emp.id === employee.employeeId
                 );
                 
+                // Obtener el nombre del empleado
+                const selectedEmployee = availableEmployees.find(emp => emp.id === employee.employeeId);
+                
                 return (
                   <div
                     key={index}
-                    className="grid grid-cols-[100px_1fr_auto_auto] gap-2 items-center"
+                    className="flex items-center gap-2"
                     data-testid={`deposito-employee-${slot.id}-${index}`}
                   >
-                    {/* Badge ENCARGADO con ancho fijo */}
-                    <div className="flex items-center justify-start">
-                      {isEncargado && (
-                        <span className="inline-flex items-center font-bold text-xs px-1.5 py-0.5 bg-primary/10 border border-primary rounded text-primary">
+                    <div className="flex-1 flex items-center gap-2">
+                      <Select
+                        value={employee.employeeId}
+                        onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
+                      >
+                        <SelectTrigger 
+                          className={`flex-1 h-8 text-xs ${isEncargado ? 'bg-blue-50 border-blue-300' : ''}`} 
+                          data-testid={`select-employee-${slot.id}-${index}`}
+                        >
+                          <SelectValue placeholder="Seleccionar empleado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredEmployees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isEncargado && selectedEmployee && (
+                        <span className="text-blue-600 font-semibold text-xs whitespace-nowrap">
                           ENCARGADO
                         </span>
                       )}
                     </div>
-                    
-                    {/* Select de empleado */}
-                    <Select
-                      value={employee.employeeId}
-                      onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
-                    >
-                      <SelectTrigger className="h-8 text-xs" data-testid={`select-employee-${slot.id}-${index}`}>
-                        <SelectValue placeholder="Seleccionar empleado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredEmployees.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    {/* Botón toggle encargado */}
                     <Button
                       onClick={() => onToggleEncargado(slot.id, index)}
                       variant={isEncargado ? "default" : "outline"}
@@ -130,8 +131,6 @@ export default function DepositoSection({
                     >
                       {isEncargado ? "✓" : "E"}
                     </Button>
-                    
-                    {/* Botón eliminar */}
                     <Button
                       onClick={() => onRemoveEmployee(slot.id, index)}
                       variant="ghost"
