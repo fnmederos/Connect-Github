@@ -132,8 +132,8 @@ export default function PlanningExportView({
                 return (
                   <div key={slot.id} className="flex items-center flex-wrap gap-2 text-sm">
                     {/* Horario */}
-                    <span className="font-bold text-black flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                    <span className="font-bold text-black inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 flex-shrink-0" />
                       {slot.timeSlot}:
                     </span>
                     
