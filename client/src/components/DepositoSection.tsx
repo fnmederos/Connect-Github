@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import type { Employee, DepositoTimeSlot, DepositoEmployeeData } from "@shared/schema";
+import { useRef } from "react";
 
 interface DepositoSectionProps {
   timeSlots: DepositoTimeSlot[];
@@ -33,6 +34,48 @@ export default function DepositoSection({
   onToggleEncargado,
   onUpdateComments,
 }: DepositoSectionProps) {
+  // Ref para almacenar los valores anteriores de cada slot
+  const previousValuesRef = useRef<Record<string, string>>({});
+  
+  // Función para formatear automáticamente la hora (HH:MM)
+  const handleTimeInput = (slotId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    const previousValue = previousValuesRef.current[slotId] || '';
+    
+    // Limpiar: solo permitir números y ":"
+    value = value.replace(/[^\d:]/g, '');
+    
+    // Extraer números
+    const numbers = value.replace(/\D/g, '');
+    const previousNumbers = previousValue.replace(/\D/g, '');
+    
+    // Detectar si está escribiendo o borrando basándose en la cantidad de dígitos
+    const isTypingForward = numbers.length > previousNumbers.length;
+    
+    // Formatear automáticamente según la cantidad de números
+    let formatted = '';
+    
+    if (numbers.length === 0) {
+      formatted = '';
+    } else if (numbers.length === 1) {
+      formatted = numbers;
+    } else if (numbers.length === 2) {
+      // Solo agregar ":" si está escribiendo hacia adelante
+      formatted = isTypingForward ? numbers + ':' : numbers;
+    } else if (numbers.length === 3) {
+      // Formatear como HH:M
+      formatted = numbers.slice(0, 2) + ':' + numbers.slice(2, 3);
+    } else {
+      // Formatear como HH:MM (máximo 4 dígitos)
+      formatted = numbers.slice(0, 2) + ':' + numbers.slice(2, 4);
+    }
+    
+    // Guardar el valor formateado para la próxima comparación
+    previousValuesRef.current[slotId] = formatted;
+    
+    onUpdateTimeSlot(slotId, formatted);
+  };
+
   return (
     <Card className="p-4">
       {/* Header */}
@@ -62,7 +105,7 @@ export default function DepositoSection({
               <input
                 type="text"
                 value={slot.timeSlot}
-                onChange={(e) => onUpdateTimeSlot(slot.id, e.target.value)}
+                onChange={(e) => handleTimeInput(slot.id, e)}
                 placeholder="08:00"
                 className="w-16 px-2 py-1 border rounded-md text-sm bg-background text-foreground"
                 data-testid={`input-timeslot-${slot.id}`}
@@ -103,7 +146,7 @@ export default function DepositoSection({
                         onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
                       >
                         <SelectTrigger 
-                          className={`flex-1 h-8 text-xs ${isEncargado ? 'bg-blue-50 border-blue-300' : ''}`} 
+                          className={`flex-1 h-8 text-xs ${isEncargado ? 'bg-blue-50 border-blue-300 text-gray-900 dark:text-gray-900' : ''}`} 
                           data-testid={`select-employee-${slot.id}-${index}`}
                         >
                           <SelectValue placeholder="Seleccionar empleado" />
