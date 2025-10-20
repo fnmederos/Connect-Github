@@ -109,6 +109,15 @@ export default function AssignmentCard({
             return hasRole && !isAlreadyAssigned;
           });
 
+          const getRoleBadgeClass = (role: string) => {
+            if (role === 'CHOFER') {
+              return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+            } else if (role === 'ACOMPAÑANTE') {
+              return 'bg-amber-100 text-amber-800 border-amber-300';
+            }
+            return 'bg-gray-100 text-gray-800 border-gray-300';
+          };
+
           return (
             <div key={row.id} className="grid grid-cols-[90px_140px_200px_auto] gap-1.5 items-center">
               {/* Horario */}
@@ -120,22 +129,29 @@ export default function AssignmentCard({
                 data-testid={`input-time-${row.id}`}
               />
 
-              {/* Función */}
-              <Select
-                value={row.role}
-                onValueChange={(value) => onUpdateRole(row.id, value)}
-              >
-                <SelectTrigger className="h-8 text-xs" data-testid={`select-role-${row.id}`}>
-                  <SelectValue placeholder="Función" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableRoles.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {role}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Función con badge de color */}
+              <div className="flex items-center gap-1">
+                <Select
+                  value={row.role}
+                  onValueChange={(value) => onUpdateRole(row.id, value)}
+                >
+                  <SelectTrigger className="h-8 text-xs flex-1" data-testid={`select-role-${row.id}`}>
+                    <SelectValue placeholder="Función" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoles.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {row.role && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold border rounded ${getRoleBadgeClass(row.role)}`}>
+                    {row.role === 'CHOFER' ? 'CH' : row.role === 'ACOMPAÑANTE' ? 'AC' : row.role.substring(0, 2)}
+                  </span>
+                )}
+              </div>
 
               {/* Personal */}
               <Select

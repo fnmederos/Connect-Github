@@ -34,6 +34,15 @@ export default function PlanningExportView({
     return employee?.name || '';
   };
 
+  const getRoleBadgeClass = (role: string) => {
+    if (role === 'CHOFER') {
+      return 'bg-emerald-200 text-emerald-900 border-emerald-400';
+    } else if (role === 'ACOMPAÑANTE') {
+      return 'bg-amber-200 text-amber-900 border-amber-400';
+    }
+    return 'bg-gray-200 text-gray-900 border-gray-400';
+  };
+
   return (
     <div className="bg-gray-50 p-6 min-w-[1000px]" data-testid="planning-export-view">
       {/* Encabezado compacto */}
@@ -80,8 +89,8 @@ export default function PlanningExportView({
                           <span className="font-medium text-black">
                             {assignment.time}
                           </span>
-                          <span className="text-gray-700">
-                            {assignment.role}:
+                          <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold border rounded ${getRoleBadgeClass(assignment.role)}`}>
+                            {assignment.role === 'CHOFER' ? 'CH' : assignment.role === 'ACOMPAÑANTE' ? 'AC' : assignment.role.substring(0, 2)}
                           </span>
                           <span className="font-semibold text-black">
                             {getEmployeeName(assignment.employeeId)}

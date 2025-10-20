@@ -91,19 +91,24 @@ export default function DepositoSection({
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-2"
+                    className="grid grid-cols-[100px_1fr_auto_auto] gap-2 items-center"
                     data-testid={`deposito-employee-${slot.id}-${index}`}
                   >
-                    {isEncargado && (
-                      <span className="font-bold text-xs px-1.5 py-0.5 bg-primary/10 border border-primary rounded text-primary">
-                        ENCARGADO
-                      </span>
-                    )}
+                    {/* Badge ENCARGADO con ancho fijo */}
+                    <div className="flex items-center justify-start">
+                      {isEncargado && (
+                        <span className="inline-flex items-center font-bold text-xs px-1.5 py-0.5 bg-primary/10 border border-primary rounded text-primary">
+                          ENCARGADO
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Select de empleado */}
                     <Select
                       value={employee.employeeId}
                       onValueChange={(value) => onUpdateEmployee(slot.id, index, value)}
                     >
-                      <SelectTrigger className="flex-1 h-8 text-xs" data-testid={`select-employee-${slot.id}-${index}`}>
+                      <SelectTrigger className="h-8 text-xs" data-testid={`select-employee-${slot.id}-${index}`}>
                         <SelectValue placeholder="Seleccionar empleado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -114,6 +119,8 @@ export default function DepositoSection({
                         ))}
                       </SelectContent>
                     </Select>
+                    
+                    {/* Botón toggle encargado */}
                     <Button
                       onClick={() => onToggleEncargado(slot.id, index)}
                       variant={isEncargado ? "default" : "outline"}
@@ -123,6 +130,8 @@ export default function DepositoSection({
                     >
                       {isEncargado ? "✓" : "E"}
                     </Button>
+                    
+                    {/* Botón eliminar */}
                     <Button
                       onClick={() => onRemoveEmployee(slot.id, index)}
                       variant="ghost"
