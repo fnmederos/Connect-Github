@@ -109,6 +109,8 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 20, 2025)
 
+- **Fixed Excel export to include depot information:** Modified ExportExcelDialog.tsx to export depot (DEPOSITO) assignments in addition to vehicle assignments. Added "SECCION" column to distinguish between VEHICULO and DEPOSITO rows. Depot rows include time slot, assigned employees, and encargado designation. Excel now provides complete daily planning data.
+- **Fixed clock icon alignment in image export:** Corrected vertical alignment of Clock icon in depot section of PlanningExportView.tsx by changing to `inline-flex` and adding `flex-shrink-0` to prevent icon distortion.
 - **Added repeatable employees feature:** Implemented support for employees (e.g., third-party contractors, outsourced companies) who can be assigned multiple times across different vehicles or even within the same vehicle. This feature bypasses the duplicate prevention system for specific employees while maintaining normal duplicate prevention for all others.
   - **Database Schema:** Added `allowDuplicates` boolean field (default: false) to the `employees` table via migration.
   - **Employee Form:** Added "Permitir duplicados" checkbox in employee creation/edit dialog with clear explanation: "Permite asignar este empleado múltiples veces (ej: personal de empresas tercerizadas)".
