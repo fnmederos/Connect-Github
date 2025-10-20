@@ -121,7 +121,7 @@ export default function Employees() {
 
   // Mutation to save employee (create or update)
   const saveEmployeeMutation = useMutation({
-    mutationFn: async ({ data, id }: { data: { name: string; roles: string[] }, id?: string }) => {
+    mutationFn: async ({ data, id }: { data: { name: string; roles: string[]; allowDuplicates: boolean }, id?: string }) => {
       if (id) {
         const response = await fetch(`/api/employees/${id}`, {
           method: 'PUT',
@@ -146,7 +146,7 @@ export default function Employees() {
     },
   });
 
-  const handleSave = (employeeData: { name: string; roles: string[] }, id?: string) => {
+  const handleSave = (employeeData: { name: string; roles: string[]; allowDuplicates: boolean }, id?: string) => {
     saveEmployeeMutation.mutate({ data: employeeData, id });
   };
 

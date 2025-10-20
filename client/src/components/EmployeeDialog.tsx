@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ interface EmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   employee?: Employee | null;
-  onSave: (employee: { name: string; roles: string[] }, id?: string) => void;
+  onSave: (employee: { name: string; roles: string[]; allowDuplicates: boolean }, id?: string) => void;
   availableRoles: string[];
 }
 
@@ -26,14 +27,17 @@ export default function EmployeeDialog({ open, onOpenChange, employee, onSave, a
   const [name, setName] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [currentRole, setCurrentRole] = useState("");
+  const [allowDuplicates, setAllowDuplicates] = useState(false);
 
   useEffect(() => {
     if (employee) {
       setName(employee.name);
       setSelectedRoles(employee.roles || []);
+      setAllowDuplicates(employee.allowDuplicates || false);
     } else {
       setName("");
       setSelectedRoles([]);
+      setAllowDuplicates(false);
     }
     setCurrentRole("");
   }, [employee, open]);
@@ -51,7 +55,7 @@ export default function EmployeeDialog({ open, onOpenChange, employee, onSave, a
 
   const handleSave = () => {
     if (name.trim() && selectedRoles.length > 0) {
-      onSave({ name: name.trim(), roles: selectedRoles }, employee?.id);
+      onSave({ name: name.trim(), roles: selectedRoles, allowDuplicates }, employee?.id);
       onOpenChange(false);
     }
   };
@@ -125,6 +129,26 @@ export default function EmployeeDialog({ open, onOpenChange, employee, onSave, a
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="flex items-start space-x-3 rounded-md border p-4">
+            <Checkbox
+              id="allow-duplicates"
+              checked={allowDuplicates}
+              onCheckedChange={(checked) => setAllowDuplicates(checked === true)}
+              data-testid="checkbox-allow-duplicates"
+            />
+            <div className="space-y-1 leading-none">
+              <Label
+                htmlFor="allow-duplicates"
+                className="text-sm font-medium cursor-pointer"
+              >
+                Permitir duplicados
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Este empleado puede ser asignado múltiples veces en el mismo vehículo o en diferentes vehículos. Útil para empleados tercerizados o empresas contratistas.
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>

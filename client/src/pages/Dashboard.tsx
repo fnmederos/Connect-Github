@@ -91,6 +91,7 @@ export default function Dashboard() {
   }, [employees, selectedDate, allAbsences]);
 
   // Calcular empleados verdaderamente disponibles (no asignados en vehículos ni depósito)
+  // EXCLUIR empleados con allowDuplicates=true para que sigan disponibles
   const unassignedEmployees = useMemo(() => {
     const assignedIds = new Set<string>();
     
@@ -98,7 +99,11 @@ export default function Dashboard() {
     Object.values(vehicleAssignments).forEach(rows => {
       rows.forEach(row => {
         if (row.employeeId) {
-          assignedIds.add(row.employeeId);
+          const employee = employees.find(e => e.id === row.employeeId);
+          // Solo marcar como asignado si NO permite duplicados
+          if (employee && !employee.allowDuplicates) {
+            assignedIds.add(row.employeeId);
+          }
         }
       });
     });
@@ -107,14 +112,18 @@ export default function Dashboard() {
     depositoTimeSlots.forEach(slot => {
       slot.employees.forEach(emp => {
         if (emp.employeeId) {
-          assignedIds.add(emp.employeeId);
+          const employee = employees.find(e => e.id === emp.employeeId);
+          // Solo marcar como asignado si NO permite duplicados
+          if (employee && !employee.allowDuplicates) {
+            assignedIds.add(emp.employeeId);
+          }
         }
       });
     });
     
     // Filtrar empleados disponibles que no están asignados
     return availableEmployees.filter(emp => !assignedIds.has(emp.id));
-  }, [availableEmployees, vehicleAssignments, depositoTimeSlots]);
+  }, [availableEmployees, vehicleAssignments, depositoTimeSlots, employees]);
 
   // Función helper para reconciliar asignaciones con disponibilidad y roles
   const reconcileAssignments = (assignments: Record<string, AssignmentRow[]>, showToast: boolean = true): { 
@@ -154,6 +163,7 @@ export default function Dashboard() {
   };
 
   // Función helper para detectar y limpiar empleados duplicados
+  // EXCLUYE empleados con allowDuplicates=true
   const removeDuplicateAssignments = (assignments: Record<string, AssignmentRow[]>): {
     updated: Record<string, AssignmentRow[]>,
     duplicatesRemoved: number
@@ -166,6 +176,13 @@ export default function Dashboard() {
     Object.keys(assignments).forEach(vehicleId => {
       updated[vehicleId] = assignments[vehicleId].map(row => {
         if (row.employeeId) {
+          const employee = employees.find(e => e.id === row.employeeId);
+          
+          // Si el empleado permite duplicados, no limpiarlo
+          if (employee?.allowDuplicates) {
+            return row;
+          }
+          
           // Si este empleado ya fue asignado antes, limpiar esta asignación
           if (seenEmployees.has(row.employeeId)) {
             duplicatesRemoved++;
@@ -799,13 +816,18 @@ export default function Dashboard() {
             <div className="flex-1 space-y-6 min-w-0">
               {(() => {
                 // Calcular TODOS los empleados ya asignados (vehículos + depósito)
+                // EXCLUIR empleados con allowDuplicates=true
                 const allAssignedEmployeeIds = new Set<string>();
                 
                 // Empleados asignados en vehículos
                 Object.values(vehicleAssignments).forEach(rows => {
                   rows.forEach(row => {
                     if (row.employeeId) {
-                      allAssignedEmployeeIds.add(row.employeeId);
+                      const employee = employees.find(e => e.id === row.employeeId);
+                      // Solo agregar si el empleado NO permite duplicados
+                      if (employee && !employee.allowDuplicates) {
+                        allAssignedEmployeeIds.add(row.employeeId);
+                      }
                     }
                   });
                 });
@@ -814,7 +836,11 @@ export default function Dashboard() {
                 depositoTimeSlots.forEach(slot => {
                   slot.employees.forEach(emp => {
                     if (emp.employeeId) {
-                      allAssignedEmployeeIds.add(emp.employeeId);
+                      const employee = employees.find(e => e.id === emp.employeeId);
+                      // Solo agregar si el empleado NO permite duplicados
+                      if (employee && !employee.allowDuplicates) {
+                        allAssignedEmployeeIds.add(emp.employeeId);
+                      }
                     }
                   });
                 });
