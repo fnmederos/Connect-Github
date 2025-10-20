@@ -110,7 +110,7 @@ export default function AssignmentCard({
           });
 
           return (
-            <div key={row.id} className="grid grid-cols-[100px_1fr_1fr_auto] gap-2 items-center">
+            <div key={row.id} className="grid grid-cols-[90px_140px_1fr_auto] gap-1.5 items-center">
               {/* Horario */}
               <Input
                 type="time"
