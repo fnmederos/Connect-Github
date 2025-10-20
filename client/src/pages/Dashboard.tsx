@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Save, Plus, FileText, FolderOpen, Users } from "lucide-react";
+import { CalendarIcon, Save, Plus, FileText, FolderOpen, Users, Download } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -16,6 +16,8 @@ import SaveTemplateDialog from "@/components/SaveTemplateDialog";
 import LoadTemplateDialog from "@/components/LoadTemplateDialog";
 import DepositoSection from "@/components/DepositoSection";
 import AvailableEmployeesPanel from "@/components/AvailableEmployeesPanel";
+import PlanningExportView from "@/components/PlanningExportView";
+import html2canvas from "html2canvas";
 import type { Vehicle, Employee, EmployeeAbsence, Template, DepositoTimeSlot } from "@shared/schema";
 
 interface AssignmentRow {
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
   const [isAvailablePanelOpen, setIsAvailablePanelOpen] = useState(false);
+  const exportViewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Fetch employees from API
@@ -670,6 +673,42 @@ export default function Dashboard() {
     deleteTemplateMutation.mutate(templateId);
   };
 
+  // Función para exportar como imagen
+  const handleExportAsImage = async () => {
+    if (!exportViewRef.current) return;
+
+    try {
+      const canvas = await html2canvas(exportViewRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2, // Mayor calidad
+        logging: false,
+      });
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          link.download = `planificacion-${dateStr}.png`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+          
+          toast({
+            title: "Imagen exportada",
+            description: "La planificación se ha descargado correctamente.",
+          });
+        }
+      });
+    } catch (error) {
+      toast({
+        title: "Error al exportar",
+        description: "No se pudo generar la imagen de la planificación.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -722,6 +761,16 @@ export default function Dashboard() {
               >
                 <FolderOpen className="w-4 h-4" />
                 Cargar Plantilla
+              </Button>
+              <Button 
+                onClick={handleExportAsImage}
+                variant="outline"
+                className="gap-2" 
+                data-testid="button-export-image"
+                disabled={selectedVehicleIds.length === 0 && depositoTimeSlots.length === 0}
+              >
+                <Download className="w-4 h-4" />
+                Exportar como Imagen
               </Button>
               <Button 
                 onClick={() => setShowSaveTemplateDialog(true)}
@@ -846,6 +895,23 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Componente oculto para exportación como imagen */}
+      <div 
+        ref={exportViewRef} 
+        className="absolute -left-[9999px] -top-[9999px]"
+        style={{ position: 'absolute' }}
+      >
+        <PlanningExportView
+          date={selectedDate}
+          vehicles={selectedVehicles}
+          vehicleAssignments={vehicleAssignments}
+          vehicleComments={vehicleComments}
+          depositoTimeSlots={depositoTimeSlots}
+          depositoComments={depositoComments}
+          employees={employees}
+        />
       </div>
 
       <VehicleSelectionDialog
