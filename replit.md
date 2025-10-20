@@ -104,3 +104,8 @@ Preferred communication style: Simple, everyday language.
 - **Zod**: Runtime type validation.
 - **drizzle-zod**: Generates Zod schemas from Drizzle schemas.
 - **TypeScript**: Static typing.
+
+## Recent Changes (October 20, 2025)
+
+- **Fixed duplicate prevention for depot assignments:** Extended the duplicate prevention system to include depot (DEPOSITO) employee assignments. Employees assigned to any vehicle or depot slot now properly disappear from all other dropdowns.
+- **Removed redundant "Funciones" navigation tab:** Eliminated the standalone "Funciones" tab from the main navigation menu. Role management is now exclusively accessed through the "Gestionar Funciones" button within the Empleados page, reducing UI clutter and redundancy.

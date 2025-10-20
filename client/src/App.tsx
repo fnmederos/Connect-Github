@@ -9,7 +9,7 @@ import Vehicles from "@/pages/Vehicles";
 import History from "@/pages/History";
 import Roles from "@/pages/Roles";
 import ThemeToggle from "@/components/ThemeToggle";
-import { LayoutDashboard, Users, Truck, History as HistoryIcon, Briefcase } from "lucide-react";
+import { LayoutDashboard, Users, Truck, History as HistoryIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function Router() {
@@ -31,7 +31,6 @@ function App() {
     { path: "/", label: "Dashboard", icon: LayoutDashboard, testId: "link-dashboard" },
     { path: "/employees", label: "Empleados", icon: Users, testId: "link-employees" },
     { path: "/vehicles", label: "Vehículos", icon: Truck, testId: "link-vehicles" },
-    { path: "/roles", label: "Funciones", icon: Briefcase, testId: "link-roles" },
     { path: "/history", label: "Historial", icon: HistoryIcon, testId: "link-history" },
   ];
 
