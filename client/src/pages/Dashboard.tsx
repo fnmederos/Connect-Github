@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Save, Plus, FileText, FolderOpen } from "lucide-react";
+import { CalendarIcon, Save, Plus, FileText, FolderOpen, Users } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import VehicleSelectionDialog from "@/components/VehicleSelectionDialog";
 import SaveTemplateDialog from "@/components/SaveTemplateDialog";
 import LoadTemplateDialog from "@/components/LoadTemplateDialog";
 import DepositoSection from "@/components/DepositoSection";
+import AvailableEmployeesPanel from "@/components/AvailableEmployeesPanel";
 import type { Vehicle, Employee, EmployeeAbsence, Template, DepositoTimeSlot } from "@shared/schema";
 
 interface AssignmentRow {
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
+  const [isAvailablePanelOpen, setIsAvailablePanelOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch employees from API
@@ -84,6 +86,32 @@ export default function Dashboard() {
   const availableEmployees = useMemo(() => {
     return employees.filter(emp => isEmployeeAvailable(emp.id, selectedDate));
   }, [employees, selectedDate, allAbsences]);
+
+  // Calcular empleados verdaderamente disponibles (no asignados en vehículos ni depósito)
+  const unassignedEmployees = useMemo(() => {
+    const assignedIds = new Set<string>();
+    
+    // Recopilar IDs de empleados asignados en vehículos
+    Object.values(vehicleAssignments).forEach(rows => {
+      rows.forEach(row => {
+        if (row.employeeId) {
+          assignedIds.add(row.employeeId);
+        }
+      });
+    });
+    
+    // Recopilar IDs de empleados asignados en depósito
+    depositoTimeSlots.forEach(slot => {
+      slot.employees.forEach(emp => {
+        if (emp.employeeId) {
+          assignedIds.add(emp.employeeId);
+        }
+      });
+    });
+    
+    // Filtrar empleados disponibles que no están asignados
+    return availableEmployees.filter(emp => !assignedIds.has(emp.id));
+  }, [availableEmployees, vehicleAssignments, depositoTimeSlots]);
 
   // Función helper para reconciliar asignaciones con disponibilidad y roles
   const reconcileAssignments = (assignments: Record<string, AssignmentRow[]>, showToast: boolean = true): { 
@@ -692,6 +720,18 @@ export default function Dashboard() {
                 <Save className="w-4 h-4" />
                 {saveAssignmentsMutation.isPending ? 'Guardando...' : 'Guardar Planificación'}
               </Button>
+              <Button 
+                onClick={() => setIsAvailablePanelOpen(true)}
+                variant="outline"
+                className="gap-2" 
+                data-testid="button-toggle-available-panel"
+              >
+                <Users className="w-4 h-4" />
+                Personal
+                <span className="ml-1 text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">
+                  {unassignedEmployees.length}
+                </span>
+              </Button>
             </div>
           </div>
 
@@ -777,6 +817,13 @@ export default function Dashboard() {
         templates={templates}
         onLoad={handleLoadTemplate}
         onDelete={handleDeleteTemplate}
+      />
+
+      <AvailableEmployeesPanel
+        isOpen={isAvailablePanelOpen}
+        onOpenChange={setIsAvailablePanelOpen}
+        availableEmployees={unassignedEmployees}
+        allRoles={availableRoles}
       />
     </div>
   );
