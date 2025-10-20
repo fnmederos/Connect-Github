@@ -59,29 +59,70 @@ export default function ExportExcelDialog({ open, onOpenChange, assignments }: E
         time: string;
       }>;
       
-      // Si no hay empleados, saltar esta asignación
-      if (employees.length === 0) {
-        return;
+      // Si hay empleados de vehículos, agregarlos
+      if (employees.length > 0) {
+        // Encontrar el chofer
+        const chofer = employees.find(emp => emp.role === "CHOFER");
+        
+        // Encontrar acompañantes (todos los que no son chofer)
+        const acompanantes = employees.filter(emp => emp.role !== "CHOFER");
+
+        // Crear UNA SOLA fila de Excel con todos los empleados del vehículo
+        const excelRow = {
+          FECHA: assignment.date,
+          SECCION: "VEHICULO",
+          VEHICULO: assignment.vehicleName,
+          MATRICULA: assignment.vehicleLicensePlate,
+          HORARIO: "",
+          CHOFER: chofer?.employeeName || "",
+          "ACOMPAÑANTE 1": acompanantes[0]?.employeeName || "",
+          "ACOMPAÑANTE 2": acompanantes[1]?.employeeName || "",
+          "ACOMPAÑANTE 3": acompanantes[2]?.employeeName || "",
+          ENCARGADO: "",
+        };
+
+        excelData.push(excelRow);
       }
       
-      // Encontrar el chofer
-      const chofer = employees.find(emp => emp.role === "CHOFER");
+      // Parse depositoAssignments y agregar filas para el depósito
+      const depositoSlots = JSON.parse(assignment.depositoAssignments || '[]') as Array<{
+        id: string;
+        timeSlot: string;
+        employees: Array<{
+          employeeId: string;
+          employeeName: string;
+          isEncargado: boolean;
+        }>;
+      }>;
       
-      // Encontrar acompañantes (todos los que no son chofer)
-      const acompanantes = employees.filter(emp => emp.role !== "CHOFER");
-
-      // Crear UNA SOLA fila de Excel con todos los empleados del vehículo
-      const excelRow = {
-        FECHA: assignment.date,
-        VEHICULO: assignment.vehicleName,
-        MATRICULA: assignment.vehicleLicensePlate,
-        CHOFER: chofer?.employeeName || "",
-        "ACOMPAÑANTE 1": acompanantes[0]?.employeeName || "",
-        "ACOMPAÑANTE 2": acompanantes[1]?.employeeName || "",
-        "ACOMPAÑANTE 3": acompanantes[2]?.employeeName || "",
-      };
-
-      excelData.push(excelRow);
+      // Agregar una fila por cada time slot del depósito que tenga empleados
+      depositoSlots.forEach(slot => {
+        const assignedEmployees = slot.employees.filter(emp => emp.employeeId);
+        
+        if (assignedEmployees.length > 0) {
+          const encargado = assignedEmployees.find(emp => emp.isEncargado);
+          const empleadosNombres = assignedEmployees
+            .filter(emp => !emp.isEncargado)
+            .map(emp => emp.employeeName)
+            .join(", ");
+          
+          const excelRow = {
+            FECHA: assignment.date,
+            SECCION: "DEPOSITO",
+            VEHICULO: "",
+            MATRICULA: "",
+            HORARIO: slot.timeSlot,
+            CHOFER: "",
+            "ACOMPAÑANTE 1": "",
+            "ACOMPAÑANTE 2": "",
+            "ACOMPAÑANTE 3": "",
+            ENCARGADO: encargado?.employeeName || "",
+            EMPLEADOS: empleadosNombres,
+          };
+          
+          excelData.push(excelRow);
+        }
+      });
     });
 
     // Crear workbook y worksheet
