@@ -742,10 +742,77 @@ export default function Dashboard() {
                 <Save className="w-4 h-4" />
                 {saveAssignmentsMutation.isPending ? 'Guardando...' : 'Guardar Planificación'}
               </Button>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            {/* Columna principal - Planificación */}
+            <div className="flex-1 space-y-6 min-w-0">
+              {selectedVehicleIds.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    No hay vehículos seleccionados. Haz clic en "Ingresar Vehículos" para comenzar.
+                  </p>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {selectedVehicles.map((vehicle, index) => {
+                    // Calcular todos los empleados ya asignados en todos los vehículos
+                    const allAssignedEmployeeIds = new Set<string>();
+                    Object.values(vehicleAssignments).forEach(rows => {
+                      rows.forEach(row => {
+                        if (row.employeeId) {
+                          allAssignedEmployeeIds.add(row.employeeId);
+                        }
+                      });
+                    });
+                    
+                    return (
+                      <AssignmentCard
+                        key={vehicle.id}
+                        vehicle={vehicle}
+                        availableEmployees={availableEmployees}
+                        availableRoles={availableRoles}
+                        assignments={vehicleAssignments[vehicle.id] || []}
+                        comments={vehicleComments[vehicle.id] || ''}
+                        allAssignedEmployeeIds={allAssignedEmployeeIds}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < selectedVehicles.length - 1}
+                        onAddRow={() => handleAddRow(vehicle.id)}
+                        onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
+                        onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
+                        onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
+                        onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
+                        onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
+                        onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
+                        onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              <DepositoSection
+                timeSlots={depositoTimeSlots}
+                availableEmployees={availableEmployees}
+                comments={depositoComments}
+                onAddTimeSlot={handleAddDepositoTimeSlot}
+                onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
+                onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
+                onAddEmployee={handleAddDepositoEmployee}
+                onRemoveEmployee={handleRemoveDepositoEmployee}
+                onUpdateEmployee={handleUpdateDepositoEmployee}
+                onToggleEncargado={handleToggleDepositoEncargado}
+                onUpdateComments={setDepositoComments}
+              />
+            </div>
+
+            {/* Columna lateral - Personal disponible */}
+            <div className="flex flex-col gap-2">
               <Button 
-                onClick={() => setIsAvailablePanelOpen(true)}
-                variant="outline"
-                className="gap-2" 
+                onClick={() => setIsAvailablePanelOpen(!isAvailablePanelOpen)}
+                variant={isAvailablePanelOpen ? "default" : "outline"}
+                className="gap-2 w-full" 
                 data-testid="button-toggle-available-panel"
               >
                 <Users className="w-4 h-4" />
@@ -754,67 +821,13 @@ export default function Dashboard() {
                   {unassignedEmployees.length}
                 </span>
               </Button>
+              
+              <AvailableEmployeesPanel
+                isOpen={isAvailablePanelOpen}
+                availableEmployees={unassignedEmployees}
+                allRoles={availableRoles}
+              />
             </div>
-          </div>
-
-          <div className="space-y-6">
-            {selectedVehicleIds.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  No hay vehículos seleccionados. Haz clic en "Ingresar Vehículos" para comenzar.
-                </p>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {selectedVehicles.map((vehicle, index) => {
-                  // Calcular todos los empleados ya asignados en todos los vehículos
-                  const allAssignedEmployeeIds = new Set<string>();
-                  Object.values(vehicleAssignments).forEach(rows => {
-                    rows.forEach(row => {
-                      if (row.employeeId) {
-                        allAssignedEmployeeIds.add(row.employeeId);
-                      }
-                    });
-                  });
-                  
-                  return (
-                    <AssignmentCard
-                      key={vehicle.id}
-                      vehicle={vehicle}
-                      availableEmployees={availableEmployees}
-                      availableRoles={availableRoles}
-                      assignments={vehicleAssignments[vehicle.id] || []}
-                      comments={vehicleComments[vehicle.id] || ''}
-                      allAssignedEmployeeIds={allAssignedEmployeeIds}
-                      canMoveUp={index > 0}
-                      canMoveDown={index < selectedVehicles.length - 1}
-                      onAddRow={() => handleAddRow(vehicle.id)}
-                      onRemoveRow={(rowId) => handleRemoveRow(vehicle.id, rowId)}
-                      onUpdateRole={(rowId, role) => handleUpdateRole(vehicle.id, rowId, role)}
-                      onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
-                      onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
-                      onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
-                      onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
-                      onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
-                    />
-                  );
-                })}
-              </div>
-            )}
-
-            <DepositoSection
-              timeSlots={depositoTimeSlots}
-              availableEmployees={availableEmployees}
-              comments={depositoComments}
-              onAddTimeSlot={handleAddDepositoTimeSlot}
-              onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
-              onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
-              onAddEmployee={handleAddDepositoEmployee}
-              onRemoveEmployee={handleRemoveDepositoEmployee}
-              onUpdateEmployee={handleUpdateDepositoEmployee}
-              onToggleEncargado={handleToggleDepositoEncargado}
-              onUpdateComments={setDepositoComments}
-            />
           </div>
         </div>
       </div>
@@ -839,13 +852,6 @@ export default function Dashboard() {
         templates={templates}
         onLoad={handleLoadTemplate}
         onDelete={handleDeleteTemplate}
-      />
-
-      <AvailableEmployeesPanel
-        isOpen={isAvailablePanelOpen}
-        onOpenChange={setIsAvailablePanelOpen}
-        availableEmployees={unassignedEmployees}
-        allRoles={availableRoles}
       />
     </div>
   );
