@@ -27,6 +27,7 @@ interface AssignmentCardProps {
   comments: string;
   loadingStatus: string;
   allAssignedEmployeeIds: Set<string>;
+  totalVehicles: number;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onAddRow: () => void;
@@ -48,6 +49,7 @@ export default function AssignmentCard({
   comments,
   loadingStatus,
   allAssignedEmployeeIds,
+  totalVehicles,
   canMoveUp,
   canMoveDown,
   onAddRow,
@@ -60,31 +62,43 @@ export default function AssignmentCard({
   onMoveUp,
   onMoveDown,
 }: AssignmentCardProps) {
-  // Opciones de estado de carga
+  // Generar opciones de estado de carga dinámicamente
   const loadingStatusOptions = [
     { value: "CARGADO", label: "CARGADO" },
-    { value: "1° EN CARGAR", label: "1° EN CARGAR" },
-    { value: "2° EN CARGAR", label: "2° EN CARGAR" },
-    { value: "3° EN CARGAR", label: "3° EN CARGAR" },
-    { value: "4° EN CARGAR", label: "4° EN CARGAR" },
+    ...Array.from({ length: totalVehicles - 1 }, (_, i) => ({
+      value: `${i + 1}° EN CARGAR`,
+      label: `${i + 1}° EN CARGAR`,
+    })),
   ];
 
-  // Badge color basado en el estado
+  // Badge color basado en el estado - Paleta de colores variados
   const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "CARGADO":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "1° EN CARGAR":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "2° EN CARGAR":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      case "3° EN CARGAR":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "4° EN CARGAR":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      default:
-        return "";
+    if (status === "CARGADO") {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
     }
+    
+    // Extraer el número de la posición
+    const match = status.match(/^(\d+)° EN CARGAR$/);
+    if (!match) return "";
+    
+    const position = parseInt(match[1]);
+    
+    // Paleta de colores variados para diferentes posiciones
+    const colors = [
+      "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",       // 1°
+      "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200", // 2°
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", // 3°
+      "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",   // 4°
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200", // 5°
+      "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",   // 6°
+      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200", // 7°
+      "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",   // 8°
+      "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",   // 9°
+      "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200",   // 10°
+    ];
+    
+    // Si hay más vehículos que colores, ciclar los colores
+    return colors[(position - 1) % colors.length];
   };
   return (
     <Card className="p-3" data-testid={`card-assignment-${vehicle.id}`}>

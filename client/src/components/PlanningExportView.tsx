@@ -47,20 +47,32 @@ export default function PlanningExportView({
   };
 
   const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "CARGADO":
-        return "bg-green-600 text-white";
-      case "1° EN CARGAR":
-        return "bg-red-600 text-white";
-      case "2° EN CARGAR":
-        return "bg-orange-600 text-white";
-      case "3° EN CARGAR":
-        return "bg-yellow-600 text-black";
-      case "4° EN CARGAR":
-        return "bg-blue-600 text-white";
-      default:
-        return "";
+    if (status === "CARGADO") {
+      return "bg-green-600 text-white";
     }
+    
+    // Extraer el número de la posición
+    const match = status.match(/^(\d+)° EN CARGAR$/);
+    if (!match) return "";
+    
+    const position = parseInt(match[1]);
+    
+    // Paleta de colores oscuros para PNG export (fondo gris claro)
+    const colors = [
+      "bg-red-600 text-white",       // 1°
+      "bg-orange-600 text-white",    // 2°
+      "bg-yellow-600 text-black",    // 3°
+      "bg-blue-600 text-white",      // 4°
+      "bg-purple-600 text-white",    // 5°
+      "bg-pink-600 text-white",      // 6°
+      "bg-indigo-600 text-white",    // 7°
+      "bg-cyan-600 text-white",      // 8°
+      "bg-teal-600 text-white",      // 9°
+      "bg-lime-600 text-black",      // 10°
+    ];
+    
+    // Si hay más vehículos que colores, ciclar los colores
+    return colors[(position - 1) % colors.length];
   };
 
   return (

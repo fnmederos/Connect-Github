@@ -894,6 +894,7 @@ export default function Dashboard() {
                             comments={vehicleComments[vehicle.id] || ''}
                             loadingStatus={vehicleLoadingStatus[vehicle.id] || ''}
                             allAssignedEmployeeIds={allAssignedEmployeeIds}
+                            totalVehicles={selectedVehicles.length}
                             canMoveUp={index > 0}
                             canMoveDown={index < selectedVehicles.length - 1}
                             onAddRow={() => handleAddRow(vehicle.id)}
