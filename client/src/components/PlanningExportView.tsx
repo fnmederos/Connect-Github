@@ -145,7 +145,7 @@ export default function PlanningExportView({
                     
                     {/* Estado de carga badge */}
                     {loadingStatus && (
-                      <span className={`inline-flex items-center px-2.5 py-1.5 rounded text-xs font-bold leading-none ${getStatusBadgeColor(loadingStatus)}`}>
+                      <span className={`inline-flex items-center justify-center px-2.5 py-1.5 rounded text-xs font-bold leading-none align-middle ${getStatusBadgeColor(loadingStatus)}`}>
                         {loadingStatus}
                       </span>
                     )}
