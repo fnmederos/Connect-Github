@@ -62,12 +62,13 @@ Located at `/admin`, accessible only to admin users, allows:
 - **History Feature:** Dedicated page (`/history`) for viewing, deleting, and managing saved daily assignments.
 - **Roles Management:** Dedicated page (`/roles`) for CRUD operations on employee roles with uniqueness validation.
 - **Comments and Depot Features:** Vehicle cards include comment textareas. A DEPOSITO section handles warehouse personnel scheduling with time slots, employee assignments, and a toggleable ENCARGADO (Supervisor) position.
-- **Excel Export:** Exports historical daily assignments for a selected date range to an .xlsx file, including vehicle, driver, and assistant details, and depot information.
-- **Image Export:** "Exportar como Imagen" button generates a PNG of the current daily planning using html2canvas. The exported image uses a compact, horizontal layout with light gray background and black text, displaying vehicle info and assignments in a single line. Color-coded badges (green for CHOFER, amber for ACOMPAÑANTE) are used. Filename includes the selected date.
+- **Loading Status Feature:** Each vehicle card includes a dropdown to assign loading priority status with 5 levels: CARGADO (loaded), 1° EN CARGAR (1st to load), 2° EN CARGAR (2nd to load), 3° EN CARGAR (3rd to load), and 4° EN CARGAR (4th to load). Status is color-coded with badges (green for CARGADO, red for 1°, orange for 2°, yellow for 3°, blue for 4°), persisted in daily assignments and templates, and included in both Excel and PNG exports.
+- **Excel Export:** Exports historical daily assignments for a selected date range to an .xlsx file, including vehicle, driver, assistant details, loading status, and depot information.
+- **Image Export:** "Exportar como Imagen" button generates a PNG of the current daily planning using html2canvas. The exported image uses a compact, horizontal layout with light gray background and black text, displaying vehicle info, loading status badges, and assignments in a single line. Color-coded badges (green for CHOFER, amber for ACOMPAÑANTE) are used for roles. Filename includes the selected date.
 - **Vehicle Reordering:** Dashboard vehicle cards can be reordered with persistent order preservation.
 - **Role-Based Filtering:** Assignment dropdowns filter employees by their roles, considering availability and absence status.
 - **Duplicate Prevention System:** Multi-layered prevention for employee assignments across vehicles and depot via UI filtering, automatic reconciliation, template sanitization, and continuous validation. Employees with `allowDuplicates=true` can be assigned multiple times.
-- **Color-coded Badges:** Visual distinction for employee roles (CHOFER, ACOMPAÑANTE) using color-coded badges in the Dashboard and exported images.
+- **Color-coded Badges:** Visual distinction for employee roles (CHOFER, ACOMPAÑANTE) and loading status using color-coded badges in the Dashboard and exported images.
 
 ## External Dependencies
 
