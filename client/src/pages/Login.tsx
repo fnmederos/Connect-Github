@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Truck, LogIn, ArrowLeft } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -26,6 +26,9 @@ export default function Login() {
         username: formData.username,
         password: formData.password,
       });
+
+      // Invalidate auth cache to force refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
 
       toast({
         title: "Inicio de sesión exitoso",
