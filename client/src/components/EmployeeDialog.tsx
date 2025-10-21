@@ -77,6 +77,26 @@ export default function EmployeeDialog({ open, onOpenChange, employee, onSave, a
               data-testid="input-employee-name"
             />
           </div>
+
+          <div className="flex items-start space-x-3 rounded-md border p-4">
+            <Checkbox
+              id="allow-duplicates"
+              checked={allowDuplicates}
+              onCheckedChange={(checked) => setAllowDuplicates(checked === true)}
+              data-testid="checkbox-allow-duplicates"
+            />
+            <div className="space-y-1 leading-none">
+              <Label
+                htmlFor="allow-duplicates"
+                className="text-sm font-medium cursor-pointer"
+              >
+                Permitir duplicados
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Este empleado puede ser asignado múltiples veces en el mismo vehículo o en diferentes vehículos. Útil para empleados tercerizados o empresas contratistas.
+              </p>
+            </div>
+          </div>
           
           <div className="space-y-2">
             <Label>Funciones</Label>
@@ -129,26 +149,6 @@ export default function EmployeeDialog({ open, onOpenChange, employee, onSave, a
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="flex items-start space-x-3 rounded-md border p-4">
-            <Checkbox
-              id="allow-duplicates"
-              checked={allowDuplicates}
-              onCheckedChange={(checked) => setAllowDuplicates(checked === true)}
-              data-testid="checkbox-allow-duplicates"
-            />
-            <div className="space-y-1 leading-none">
-              <Label
-                htmlFor="allow-duplicates"
-                className="text-sm font-medium cursor-pointer"
-              >
-                Permitir duplicados
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Este empleado puede ser asignado múltiples veces en el mismo vehículo o en diferentes vehículos. Útil para empleados tercerizados o empresas contratistas.
-              </p>
-            </div>
           </div>
         </div>
         <DialogFooter>
