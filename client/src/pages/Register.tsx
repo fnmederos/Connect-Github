@@ -41,20 +41,22 @@ export default function Register() {
         password: formData.password,
       });
 
-      // Invalidate auth cache to force refetch
-      await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      // Refetch auth to update the app state
+      await queryClient.refetchQueries({ queryKey: ['/api/me'] });
 
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente",
       });
 
-      // Redirect based on approval status
-      if (response.user?.isApproved) {
-        setLocation("/");
-      } else {
-        setLocation("/pending-approval");
-      }
+      // Small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        if (response.user?.isApproved) {
+          setLocation("/");
+        } else {
+          setLocation("/pending-approval");
+        }
+      }, 100);
     } catch (error: any) {
       toast({
         title: "Error al registrarse",
