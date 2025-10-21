@@ -75,6 +75,42 @@ export default function PlanningExportView({
     return colors[(position - 1) % colors.length];
   };
 
+  // Función para ordenar vehículos por estado de carga
+  const sortVehiclesByLoadingStatus = (vehiclesList: Vehicle[]) => {
+    return [...vehiclesList].sort((a, b) => {
+      const statusA = vehicleLoadingStatus[a.id] || '';
+      const statusB = vehicleLoadingStatus[b.id] || '';
+
+      // Si ambos tienen CARGADO o ninguno tiene estado, mantener orden original
+      if (statusA === "CARGADO" && statusB === "CARGADO") return 0;
+      if (!statusA && !statusB) return 0;
+
+      // CARGADO siempre primero
+      if (statusA === "CARGADO") return -1;
+      if (statusB === "CARGADO") return 1;
+
+      // Los que no tienen estado van al final
+      if (!statusA) return 1;
+      if (!statusB) return -1;
+
+      // Extraer números para comparar
+      const matchA = statusA.match(/^(\d+)° EN CARGAR$/);
+      const matchB = statusB.match(/^(\d+)° EN CARGAR$/);
+
+      if (!matchA && !matchB) return 0;
+      if (!matchA) return 1;
+      if (!matchB) return -1;
+
+      const numA = parseInt(matchA[1]);
+      const numB = parseInt(matchB[1]);
+
+      return numA - numB;
+    });
+  };
+
+  // Ordenar vehículos por estado de carga
+  const sortedVehicles = sortVehiclesByLoadingStatus(vehicles);
+
   return (
     <div className="bg-gray-50 p-6 min-w-[1000px]" data-testid="planning-export-view">
       {/* Encabezado compacto */}
@@ -85,10 +121,10 @@ export default function PlanningExportView({
       </div>
 
       {/* Vehículos - Formato compacto en línea */}
-      {vehicles.length > 0 && (
+      {sortedVehicles.length > 0 && (
         <div className="mb-6">
           <div className="space-y-2">
-            {vehicles.map((vehicle) => {
+            {sortedVehicles.map((vehicle) => {
               const assignments = vehicleAssignments[vehicle.id] || [];
               const comments = vehicleComments[vehicle.id] || '';
               const loadingStatus = vehicleLoadingStatus[vehicle.id] || '';
