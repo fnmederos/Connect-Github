@@ -51,18 +51,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get updated user (may now be admin)
       const updatedUser = await storage.getUser(user.id);
 
-      // Auto-login the user
+      // Auto-login the user and save session explicitly
       req.session.userId = user.id;
-
-      res.status(201).json({
-        message: "Registration successful",
-        user: {
-          id: updatedUser!.id,
-          username: updatedUser!.username,
-          email: updatedUser!.email,
-          role: updatedUser!.role,
-          isApproved: updatedUser!.isApproved,
+      
+      // Force session save before responding
+      req.session.save((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session save failed" });
         }
+        
+        res.status(201).json({
+          message: "Registration successful",
+          user: {
+            id: updatedUser!.id,
+            username: updatedUser!.username,
+            email: updatedUser!.email,
+            role: updatedUser!.role,
+            isApproved: updatedUser!.isApproved,
+          }
+        });
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -91,18 +98,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // Set session
+      // Set session and save it explicitly
       req.session.userId = user.id;
-
-      res.json({
-        message: "Login successful",
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          isApproved: user.isApproved,
+      
+      // Force session save before responding
+      req.session.save((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session save failed" });
         }
+        
+        res.json({
+          message: "Login successful",
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            isApproved: user.isApproved,
+          }
+        });
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
