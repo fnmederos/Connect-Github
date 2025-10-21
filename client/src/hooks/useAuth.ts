@@ -1,19 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import type { User } from "@shared/schema";
 
-interface AuthStatusResponse {
-  authenticated: boolean;
-  user: User | null;
+interface UserInfo {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  isApproved: boolean;
 }
 
 export function useAuth() {
-  const { data, isLoading, error } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status'],
+  const { data: user, isLoading, error } = useQuery<UserInfo>({
+    queryKey: ['/api/me'],
     retry: false,
+    // This query will fail with 401 if not authenticated, which is expected
+    throwOnError: false,
   });
 
-  const user = data?.user || null;
-  const isAuthenticated = data?.authenticated || false;
+  const isAuthenticated = !!user;
   const isApproved = user?.isApproved || false;
   const isAdmin = user?.role === 'admin';
 

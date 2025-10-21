@@ -15,13 +15,47 @@ The frontend uses Wouter for page-based routing, shadcn/ui (Radix primitives) fo
 The backend is a RESTful Express.js server with route handlers and an abstraction layer for storage (currently in-memory, planned for database migration). It uses Drizzle ORM for type-safe operations, Zod for validation, and PostgreSQL via Neon serverless, with schemas shared between client and server for type consistency. API endpoints provide comprehensive CRUD operations for employees, vehicles, absences, daily assignments, and roles.
 
 ### Database Schema
-Key tables include `users` (with Replit Auth integration and approval workflow), `sessions`, `employees` (with multi-role support and `allowDuplicates` flag), `vehicles`, `employeeAbsences`, `dailyAssignments` (denormalized for historical accuracy and Excel export), and `roles`. UUIDs are used for primary keys, array types for roles and assignmentRows, and ISO format strings for dates. The `dailyAssignments` table stores vehicle and employee details as snapshots and JSON for depot assignments to simplify Excel export, ensure historical accuracy, and improve query performance.
+Key tables include `users` (with username/password authentication and approval workflow), `sessions`, `employees` (with multi-role support, `allowDuplicates` flag, and `userId` scoping), `vehicles` (with `userId` scoping), `employeeAbsences` (with `userId` scoping), `dailyAssignments` (denormalized for historical accuracy, Excel export, and `userId` scoping), and `roles` (with `userId` scoping).
+
+**User Table:**
+- `username`: Unique username for login
+- `email`: User's email address
+- `passwordHash`: Bcrypt-hashed password
+- `role`: Either "admin" or "user"
+- `isApproved`: Approval status flag
+- `requestedAt`, `approvedAt`: Timestamps for approval workflow
+
+**Multi-Tenant Tables:**
+All data tables (employees, vehicles, roles, templates, dailyAssignments, employeeAbsences) include a `userId` column that references the owning user, ensuring complete data isolation.
+
+UUIDs are used for primary keys, array types for roles and assignmentRows, and ISO format strings for dates. The `dailyAssignments` table stores vehicle and employee details as snapshots and JSON for depot assignments to simplify Excel export, ensure historical accuracy, and improve query performance.
 
 ### Build & Deployment
 Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. Production involves Vite building the frontend to `dist/public` and esbuild bundling the backend to `dist/index.js`. Configuration includes path aliases, Tailwind with custom design tokens, PostCSS, and TypeScript strict mode.
 
 ### Authentication & Authorization
-Authentication is integrated with Replit Auth (OpenID Connect), managing user sessions via Passport.js and PostgreSQL. New users undergo an approval workflow, with the first user automatically becoming an approved admin. Role-Based Access Control (RBAC) is enforced through `isAuthenticated`, `isApproved`, and `isAdmin` middleware, protecting API routes and providing an admin panel (`/admin`) for user management.
+The system uses traditional username/password authentication with bcrypt for password hashing. User sessions are managed via express-session with PostgreSQL storage. Each user has an isolated workspace with complete data separation - all employees, vehicles, roles, templates, and assignments are scoped to the user's account.
+
+**Authentication Flow:**
+- Registration: Users create accounts with username, email, and password
+- First User: Automatically promoted to admin and approved
+- Subsequent Users: Require admin approval before accessing the application
+- Login: Standard username/password authentication
+- Session: Managed via express-session with PostgreSQL store
+
+**Multi-Tenancy & Data Isolation:**
+All domain tables (employees, vehicles, roles, templates, dailyAssignments, employeeAbsences) include a `userId` foreign key. Every CRUD operation is scoped to the authenticated user's ID, ensuring complete data isolation between accounts. This allows multiple companies to use the same system independently.
+
+**Authorization Middleware:**
+- `isAuthenticated`: Verifies user is logged in
+- `isApproved`: Ensures user has been approved by admin
+- `isAdmin`: Restricts access to admin-only features
+
+**Admin Panel:**
+Located at `/admin`, accessible only to admin users, allows:
+- Viewing all registered users
+- Approving/rejecting user registration requests
+- Monitoring user approval status
 
 ### Feature Specifications
 - **Dashboard Workflow:** Manual vehicle selection, multi-select dialog for vehicles, manual row creation for assignments. Saving replaces existing assignments for the selected date.
@@ -67,3 +101,8 @@ Authentication is integrated with Replit Auth (OpenID Connect), managing user se
 - **Zod**: Runtime type validation.
 - **drizzle-zod**: Generates Zod schemas from Drizzle schemas.
 - **TypeScript**: Static typing.
+
+### Security
+- **bcrypt**: Password hashing with salt rounds for secure credential storage.
+- **express-session**: Secure session management with PostgreSQL store.
+- **Data Isolation**: Complete multi-tenancy ensures users can only access their own data.

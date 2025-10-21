@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupAuth } from "./replitAuth";
+import { setupAuth } from "./auth";
 
 const app = express();
 app.use(express.json());
@@ -38,8 +38,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Setup authentication first
-  await setupAuth(app);
+  // Setup authentication (express-session)
+  setupAuth(app);
   
   const server = await registerRoutes(app);
 

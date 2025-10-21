@@ -1,56 +1,150 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { isAuthenticated, isApproved, isAdmin } from "./replitAuth";
+import { hashPassword, comparePassword, isAuthenticated, isApproved, isAdmin } from "./auth";
 import { 
   insertEmployeeAbsenceSchema, 
   insertDailyAssignmentSchema,
   insertEmployeeSchema,
   insertVehicleSchema,
   insertTemplateSchema,
-  insertRoleSchema
+  insertRoleSchema,
+  registerUserSchema,
+  loginUserSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth status route (public - no authentication required)
-  app.get("/api/auth/status", async (req, res) => {
+  // ============================================================================
+  // Authentication Routes (public)
+  // ============================================================================
+  
+  // Register a new user
+  app.post("/api/register", async (req, res) => {
     try {
-      // Check if user is authenticated
-      if (!req.isAuthenticated()) {
-        return res.json({ authenticated: false, user: null });
-      }
-
-      const sessionUser = req.user as any;
-      const userId = sessionUser?.claims?.sub;
+      const result = registerUserSchema.safeParse(req.body);
       
-      if (!userId) {
-        return res.json({ authenticated: false, user: null });
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
       }
 
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        return res.json({ authenticated: true, user: null });
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(result.data.username);
+      if (existingUser) {
+        return res.status(409).json({ message: "Username already exists" });
       }
 
-      res.json({
-        authenticated: true,
+      // Hash password
+      const passwordHash = await hashPassword(result.data.password);
+
+      // Create user
+      const user = await storage.registerUser({
+        username: result.data.username,
+        email: result.data.email,
+        password: result.data.password,
+        passwordHash,
+      });
+
+      // Check if this should be the first admin
+      await storage.shouldPromoteToFirstAdmin(user.id);
+
+      // Get updated user (may now be admin)
+      const updatedUser = await storage.getUser(user.id);
+
+      // Auto-login the user
+      req.session.userId = user.id;
+
+      res.status(201).json({
+        message: "Registration successful",
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          profileImageUrl: user.profileImageUrl,
-          role: user.role,
-          isApproved: user.isApproved,
-        },
+          id: updatedUser!.id,
+          username: updatedUser!.username,
+          email: updatedUser!.email,
+          role: updatedUser!.role,
+          isApproved: updatedUser!.isApproved,
+        }
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Admin routes - user management
+  // Login with username and password
+  app.post("/api/login", async (req, res) => {
+    try {
+      const result = loginUserSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      // Find user by username
+      const user = await storage.getUserByUsername(result.data.username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      // Verify password
+      const isValid = await comparePassword(result.data.password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      // Set session
+      req.session.userId = user.id;
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved,
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Logout
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  // Get current user info
+  app.get("/api/me", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isApproved: user.isApproved,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Admin Routes - User Management
+  // ============================================================================
+  
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -90,10 +184,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Employee routes (protected - requires approved user)
+  // ============================================================================
+  // Employee Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/employees", isApproved, async (req, res) => {
     try {
-      const employees = await storage.getAllEmployees();
+      const userId = req.session.userId!;
+      const employees = await storage.getAllEmployees(userId);
       res.json(employees);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -102,6 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/employees", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertEmployeeSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -109,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const employee = await storage.createEmployee(result.data);
+      const employee = await storage.createEmployee(userId, result.data);
       res.status(201).json(employee);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -118,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/employees/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
       const result = insertEmployeeSchema.partial().safeParse(req.body);
       
@@ -126,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const employee = await storage.updateEmployee(id, result.data);
+      const employee = await storage.updateEmployee(userId, id, result.data);
       
       if (!employee) {
         return res.status(404).json({ message: "Employee not found" });
@@ -140,8 +240,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/employees/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const deleted = await storage.deleteEmployee(id);
+      const deleted = await storage.deleteEmployee(userId, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Employee not found" });
@@ -153,10 +254,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vehicle routes (protected)
+  // ============================================================================
+  // Vehicle Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/vehicles", isApproved, async (req, res) => {
     try {
-      const vehicles = await storage.getAllVehicles();
+      const userId = req.session.userId!;
+      const vehicles = await storage.getAllVehicles(userId);
       res.json(vehicles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -165,6 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vehicles", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertVehicleSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -172,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const vehicle = await storage.createVehicle(result.data);
+      const vehicle = await storage.createVehicle(userId, result.data);
       res.status(201).json(vehicle);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -181,6 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/vehicles/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
       const result = insertVehicleSchema.partial().safeParse(req.body);
       
@@ -189,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const vehicle = await storage.updateVehicle(id, result.data);
+      const vehicle = await storage.updateVehicle(userId, id, result.data);
       
       if (!vehicle) {
         return res.status(404).json({ message: "Vehicle not found" });
@@ -203,8 +310,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/vehicles/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const deleted = await storage.deleteVehicle(id);
+      const deleted = await storage.deleteVehicle(userId, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Vehicle not found" });
@@ -216,10 +324,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Roles routes (protected)
+  // ============================================================================
+  // Roles Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/roles", isApproved, async (req, res) => {
     try {
-      const roles = await storage.getAllRoles();
+      const userId = req.session.userId!;
+      const roles = await storage.getAllRoles(userId);
       res.json(roles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -228,23 +340,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/roles", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { roles } = req.body;
       
       if (!Array.isArray(roles)) {
         return res.status(400).json({ message: "Roles must be an array" });
       }
       
-      const updatedRoles = await storage.saveRoles(roles);
+      const updatedRoles = await storage.saveRoles(userId, roles);
       res.json(updatedRoles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Individual Role CRUD routes (protected)
+  // Individual Role CRUD routes (protected - scoped by userId)
   app.get("/api/roles-detailed", isApproved, async (req, res) => {
     try {
-      const roles = await storage.getAllRolesDetailed();
+      const userId = req.session.userId!;
+      const roles = await storage.getAllRolesDetailed(userId);
       res.json(roles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -253,6 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/roles-detailed", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertRoleSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -260,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const role = await storage.createRole(result.data);
+      const role = await storage.createRole(userId, result.data);
       res.status(201).json(role);
     } catch (error: any) {
       // Handle duplicate role errors
@@ -273,6 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/roles-detailed/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
       const result = insertRoleSchema.partial().safeParse(req.body);
       
@@ -281,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const role = await storage.updateRole(id, result.data);
+      const role = await storage.updateRole(userId, id, result.data);
       
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
@@ -299,8 +415,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/roles-detailed/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const deleted = await storage.deleteRole(id);
+      const deleted = await storage.deleteRole(userId, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Role not found" });
@@ -312,17 +429,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily Assignments routes (protected)
+  // ============================================================================
+  // Daily Assignments Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/daily-assignments", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const date = req.query.date as string | undefined;
       
       if (date) {
-        const assignments = await storage.getDailyAssignmentsByDate(date);
+        const assignments = await storage.getDailyAssignmentsByDate(userId, date);
         res.json(assignments);
       } else {
         // Get all assignments (for history view)
-        const assignments = await storage.getAllDailyAssignments();
+        const assignments = await storage.getAllDailyAssignments(userId);
         res.json(assignments);
       }
     } catch (error: any) {
@@ -332,6 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/daily-assignments", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertDailyAssignmentSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -339,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const assignment = await storage.createDailyAssignment(result.data);
+      const assignment = await storage.createDailyAssignment(userId, result.data);
       res.status(201).json(assignment);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -348,11 +470,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/daily-assignments/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const deleted = await storage.deleteDailyAssignment(id);
+      const deleted = await storage.deleteDailyAssignment(userId, id);
       
       if (!deleted) {
-        return res.status(404).json({ message: "Assignment not found" });
+        return res.status(404).json({ message: "Daily assignment not found" });
       }
       
       res.status(204).send();
@@ -363,28 +486,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/daily-assignments/by-date/:date", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { date } = req.params;
-      const deletedCount = await storage.deleteDailyAssignmentsByDate(date);
-      
-      res.status(200).json({ deletedCount });
+      const count = await storage.deleteDailyAssignmentsByDate(userId, date);
+      res.json({ message: `Deleted ${count} assignments` });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Employee Absences routes (protected)
+  // ============================================================================
+  // Employee Absences Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/absences", isApproved, async (req, res) => {
     try {
-      const employeeId = req.query.employeeId as string | undefined;
-      
-      if (employeeId) {
-        const absences = await storage.getEmployeeAbsencesByEmployeeId(employeeId);
-        res.json(absences);
-      } else {
-        // Get all absences
-        const absences = await storage.getAllAbsences();
-        res.json(absences);
-      }
+      const userId = req.session.userId!;
+      const absences = await storage.getAllAbsences(userId);
+      res.json(absences);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/absences/employee/:employeeId", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { employeeId } = req.params;
+      const absences = await storage.getEmployeeAbsencesByEmployeeId(userId, employeeId);
+      res.json(absences);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -392,6 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/absences", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertEmployeeAbsenceSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -399,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const absence = await storage.createEmployeeAbsence(result.data);
+      const absence = await storage.createEmployeeAbsence(userId, result.data);
       res.status(201).json(absence);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -408,23 +539,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/absences/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const success = await storage.deleteEmployeeAbsence(id);
+      const deleted = await storage.deleteEmployeeAbsence(userId, id);
       
-      if (success) {
-        res.status(204).send();
-      } else {
-        res.status(404).json({ message: "Absence not found" });
+      if (!deleted) {
+        return res.status(404).json({ message: "Absence not found" });
       }
+      
+      res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Template routes (protected)
+  // ============================================================================
+  // Templates Routes (protected - scoped by userId)
+  // ============================================================================
+  
   app.get("/api/templates", isApproved, async (req, res) => {
     try {
-      const templates = await storage.getAllTemplates();
+      const userId = req.session.userId!;
+      const templates = await storage.getAllTemplates(userId);
       res.json(templates);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -433,6 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/templates", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const result = insertTemplateSchema.safeParse(req.body);
       
       if (!result.success) {
@@ -440,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: errorMessage });
       }
 
-      const template = await storage.createTemplate(result.data);
+      const template = await storage.createTemplate(userId, result.data);
       res.status(201).json(template);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -449,19 +586,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/templates/:id", isApproved, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const { id } = req.params;
-      const success = await storage.deleteTemplate(id);
+      const deleted = await storage.deleteTemplate(userId, id);
       
-      if (success) {
-        res.status(204).send();
-      } else {
-        res.status(404).json({ message: "Template not found" });
+      if (!deleted) {
+        return res.status(404).json({ message: "Template not found" });
       }
+      
+      res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }

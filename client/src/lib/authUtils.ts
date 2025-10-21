@@ -1,7 +1,12 @@
-export function login() {
-  window.location.href = '/api/login';
-}
+import { apiRequest } from "./queryClient";
 
-export function logout() {
-  window.location.href = '/api/logout';
+export async function logout() {
+  try {
+    await apiRequest("POST", "/api/logout");
+    window.location.href = '/';
+  } catch (error) {
+    console.error("Logout failed:", error);
+    // Force redirect anyway
+    window.location.href = '/';
+  }
 }

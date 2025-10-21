@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/lib/authUtils";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import PendingApproval from "@/pages/PendingApproval";
 import AdminPanel from "@/pages/AdminPanel";
 import Dashboard from "@/pages/Dashboard";
@@ -25,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 function AuthenticatedRouter() {
   return (
@@ -62,11 +64,8 @@ function AuthenticatedApp() {
   }
 
   const getUserInitials = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-    }
-    if (user?.firstName) {
-      return user.firstName.substring(0, 2).toUpperCase();
+    if (user?.username) {
+      return user.username.substring(0, 2).toUpperCase();
     }
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
@@ -75,13 +74,7 @@ function AuthenticatedApp() {
   };
 
   const getUserDisplayName = () => {
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    }
-    if (user?.firstName) {
-      return user.firstName;
-    }
-    return user?.email || 'Usuario';
+    return user?.username || user?.email || 'Usuario';
   };
 
   return (
@@ -118,7 +111,6 @@ function AuthenticatedApp() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2" data-testid="button-user-menu">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={user?.profileImageUrl || undefined} alt={getUserDisplayName()} />
                       <AvatarFallback>{getUserInitials()}</AvatarFallback>
                     </Avatar>
                     <span className="hidden sm:inline" data-testid="text-user-name">
@@ -129,6 +121,10 @@ function AuthenticatedApp() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled>
+                    <User className="w-4 h-4 mr-2" />
+                    {user?.username}
+                  </DropdownMenuItem>
                   <DropdownMenuItem disabled>
                     <User className="w-4 h-4 mr-2" />
                     {user?.email}
@@ -204,9 +200,16 @@ function AppContent() {
     );
   }
 
-  // Show landing page if not authenticated
+  // Public routes (not authenticated)
   if (!isAuthenticated) {
-    return <Landing />;
+    return (
+      <Switch>
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/" component={Landing} />
+        <Route component={Landing} /> {/* Default route */}
+      </Switch>
+    );
   }
 
   // Show pending approval page if authenticated but not approved

@@ -1,9 +1,11 @@
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { login } from "@/lib/authUtils";
-import { LogIn, Truck, Calendar, Users } from "lucide-react";
+import { LogIn, Truck, Calendar, Users, UserPlus } from "lucide-react";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-2xl shadow-xl">
@@ -45,15 +47,25 @@ export default function Landing() {
             </div>
           </div>
           
-          <div className="flex justify-center pt-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button 
               size="lg" 
               className="gap-2 text-lg px-8 py-6"
-              onClick={login}
+              onClick={() => setLocation("/login")}
               data-testid="button-login"
             >
               <LogIn className="w-5 h-5" />
               Iniciar Sesión
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="gap-2 text-lg px-8 py-6"
+              onClick={() => setLocation("/register")}
+              data-testid="button-register"
+            >
+              <UserPlus className="w-5 h-5" />
+              Registrarse
             </Button>
           </div>
         </CardContent>

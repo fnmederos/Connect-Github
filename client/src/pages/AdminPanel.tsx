@@ -98,8 +98,8 @@ export default function AdminPanel() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Usuario</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Nombre</TableHead>
                     <TableHead>Rol</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Solicitado</TableHead>
@@ -109,13 +109,11 @@ export default function AdminPanel() {
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium" data-testid={`text-email-${user.id}`}>
-                        {user.email}
+                      <TableCell className="font-medium" data-testid={`text-username-${user.id}`}>
+                        {user.username}
                       </TableCell>
-                      <TableCell data-testid={`text-name-${user.id}`}>
-                        {user.firstName && user.lastName 
-                          ? `${user.firstName} ${user.lastName}` 
-                          : user.firstName || user.lastName || '-'}
+                      <TableCell data-testid={`text-email-${user.id}`}>
+                        {user.email}
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>

@@ -13,7 +13,7 @@ import {
   type Role,
   type InsertRole,
   type User,
-  type UpsertUser,
+  type RegisterUser,
   employees,
   vehicles,
   employeeAbsences,
@@ -23,64 +23,63 @@ import {
   users
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// Storage interface with userId-scoped methods for multi-tenancy
 export interface IStorage {
-  // User methods - Required for Replit Auth
+  // User methods - Traditional username/password authentication
+  registerUser(userData: RegisterUser & { passwordHash: string }): Promise<User>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined>;
   shouldPromoteToFirstAdmin(userId: string): Promise<boolean>;
 
-  // Employee methods
-  getEmployee(id: string): Promise<Employee | undefined>;
-  getAllEmployees(): Promise<Employee[]>;
-  createEmployee(employee: InsertEmployee): Promise<Employee>;
-  updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
-  deleteEmployee(id: string): Promise<boolean>;
+  // Employee methods - scoped by userId
+  getEmployee(userId: string, id: string): Promise<Employee | undefined>;
+  getAllEmployees(userId: string): Promise<Employee[]>;
+  createEmployee(userId: string, employee: InsertEmployee): Promise<Employee>;
+  updateEmployee(userId: string, id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
+  deleteEmployee(userId: string, id: string): Promise<boolean>;
 
-  // Vehicle methods
-  getVehicle(id: string): Promise<Vehicle | undefined>;
-  getAllVehicles(): Promise<Vehicle[]>;
-  createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
-  updateVehicle(id: string, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
-  deleteVehicle(id: string): Promise<boolean>;
+  // Vehicle methods - scoped by userId
+  getVehicle(userId: string, id: string): Promise<Vehicle | undefined>;
+  getAllVehicles(userId: string): Promise<Vehicle[]>;
+  createVehicle(userId: string, vehicle: InsertVehicle): Promise<Vehicle>;
+  updateVehicle(userId: string, id: string, vehicle: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
+  deleteVehicle(userId: string, id: string): Promise<boolean>;
 
-  // Roles methods (legacy array-based)
-  getAllRoles(): Promise<string[]>;
-  saveRoles(roles: string[]): Promise<string[]>;
+  // Roles methods (legacy array-based) - scoped by userId
+  getAllRoles(userId: string): Promise<string[]>;
+  saveRoles(userId: string, roles: string[]): Promise<string[]>;
   
-  // Roles CRUD methods (individual role management)
-  getRole(id: string): Promise<Role | undefined>;
-  getAllRolesDetailed(): Promise<Role[]>;
-  createRole(role: InsertRole): Promise<Role>;
-  updateRole(id: string, role: Partial<InsertRole>): Promise<Role | undefined>;
-  deleteRole(id: string): Promise<boolean>;
+  // Roles CRUD methods (individual role management) - scoped by userId
+  getRole(userId: string, id: string): Promise<Role | undefined>;
+  getAllRolesDetailed(userId: string): Promise<Role[]>;
+  createRole(userId: string, role: InsertRole): Promise<Role>;
+  updateRole(userId: string, id: string, role: Partial<InsertRole>): Promise<Role | undefined>;
+  deleteRole(userId: string, id: string): Promise<boolean>;
 
-  // Employee Absence methods
-  getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined>;
-  getAllAbsences(): Promise<EmployeeAbsence[]>;
-  getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]>;
-  createEmployeeAbsence(absence: InsertEmployeeAbsence): Promise<EmployeeAbsence>;
-  deleteEmployeeAbsence(id: string): Promise<boolean>;
+  // Employee Absence methods - scoped by userId
+  getEmployeeAbsence(userId: string, id: string): Promise<EmployeeAbsence | undefined>;
+  getAllAbsences(userId: string): Promise<EmployeeAbsence[]>;
+  getEmployeeAbsencesByEmployeeId(userId: string, employeeId: string): Promise<EmployeeAbsence[]>;
+  createEmployeeAbsence(userId: string, absence: InsertEmployeeAbsence): Promise<EmployeeAbsence>;
+  deleteEmployeeAbsence(userId: string, id: string): Promise<boolean>;
 
-  // Daily Assignment methods
-  getDailyAssignment(id: string): Promise<DailyAssignment | undefined>;
-  getAllDailyAssignments(): Promise<DailyAssignment[]>;
-  getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]>;
-  createDailyAssignment(assignment: InsertDailyAssignment): Promise<DailyAssignment>;
-  deleteDailyAssignment(id: string): Promise<boolean>;
-  deleteDailyAssignmentsByDate(date: string): Promise<number>;
+  // Daily Assignment methods - scoped by userId
+  getDailyAssignment(userId: string, id: string): Promise<DailyAssignment | undefined>;
+  getAllDailyAssignments(userId: string): Promise<DailyAssignment[]>;
+  getDailyAssignmentsByDate(userId: string, date: string): Promise<DailyAssignment[]>;
+  createDailyAssignment(userId: string, assignment: InsertDailyAssignment): Promise<DailyAssignment>;
+  deleteDailyAssignment(userId: string, id: string): Promise<boolean>;
+  deleteDailyAssignmentsByDate(userId: string, date: string): Promise<number>;
 
-  // Template methods
-  getTemplate(id: string): Promise<Template | undefined>;
-  getAllTemplates(): Promise<Template[]>;
-  createTemplate(template: InsertTemplate): Promise<Template>;
-  deleteTemplate(id: string): Promise<boolean>;
+  // Template methods - scoped by userId
+  getTemplate(userId: string, id: string): Promise<Template | undefined>;
+  getAllTemplates(userId: string): Promise<Template[]>;
+  createTemplate(userId: string, template: InsertTemplate): Promise<Template>;
+  deleteTemplate(userId: string, id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -100,47 +99,34 @@ export class MemStorage implements IStorage {
     this.employeeAbsences = new Map();
     this.dailyAssignments = new Map();
     this.templates = new Map();
-    
-    // Initialize with default roles
-    const defaultRoles = ['CHOFER', 'PEON', 'AYUDANTE', 'OPERARIO', 'SUPERVISOR'];
-    defaultRoles.forEach(name => {
-      const id = randomUUID();
-      this.roles.set(id, { id, name });
-    });
   }
 
-  // User methods - Required for Replit Auth
+  // User methods
+  async registerUser(userData: RegisterUser & { passwordHash: string }): Promise<User> {
+    const id = randomUUID();
+    const now = new Date();
+    const user: User = {
+      id,
+      username: userData.username,
+      email: userData.email,
+      passwordHash: userData.passwordHash,
+      role: "user",
+      isApproved: false,
+      requestedAt: now,
+      approvedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.username === username);
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const existing = this.users.get(userData.id || '');
-    if (existing) {
-      const updated: User = {
-        ...existing,
-        ...userData,
-        updatedAt: new Date(),
-      };
-      this.users.set(existing.id, updated);
-      return updated;
-    } else {
-      const user: User = {
-        id: userData.id || randomUUID(),
-        email: userData.email || null,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
-        profileImageUrl: userData.profileImageUrl || null,
-        role: userData.role || 'user',
-        isApproved: userData.isApproved || false,
-        requestedAt: new Date(),
-        approvedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.users.set(user.id, user);
-      return user;
-    }
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -151,6 +137,7 @@ export class MemStorage implements IStorage {
   async updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
+    
     const updated: User = {
       ...user,
       isApproved,
@@ -162,17 +149,15 @@ export class MemStorage implements IStorage {
   }
 
   async shouldPromoteToFirstAdmin(userId: string): Promise<boolean> {
-    const user = this.users.get(userId);
-    if (!user || user.role === 'admin') return false;
-    
-    // Check if any admin exists
-    const hasAdmin = Array.from(this.users.values()).some(u => u.role === 'admin');
+    const hasAdmin = Array.from(this.users.values()).some(u => u.role === "admin");
     if (hasAdmin) return false;
     
-    // Promote this user to admin
+    const user = this.users.get(userId);
+    if (!user || user.role === "admin") return false;
+    
     const updated: User = {
       ...user,
-      role: 'admin',
+      role: "admin",
       isApproved: true,
       approvedAt: new Date(),
       updatedAt: new Date(),
@@ -181,117 +166,136 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  // Employee methods
-  async getEmployee(id: string): Promise<Employee | undefined> {
-    return this.employees.get(id);
+  // Employee methods - with userId filtering
+  async getEmployee(userId: string, id: string): Promise<Employee | undefined> {
+    const employee = this.employees.get(id);
+    return (employee && employee.userId === userId) ? employee : undefined;
   }
 
-  async getAllEmployees(): Promise<Employee[]> {
-    return Array.from(this.employees.values());
+  async getAllEmployees(userId: string): Promise<Employee[]> {
+    return Array.from(this.employees.values())
+      .filter(e => e.userId === userId);
   }
 
-  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+  async createEmployee(userId: string, insertEmployee: InsertEmployee): Promise<Employee> {
     const id = randomUUID();
-    const employee: Employee = { ...insertEmployee, id };
+    const employee: Employee = { 
+      ...insertEmployee, 
+      id, 
+      userId,
+      allowDuplicates: insertEmployee.allowDuplicates ?? false
+    };
     this.employees.set(id, employee);
     return employee;
   }
 
-  async updateEmployee(id: string, employeeData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+  async updateEmployee(userId: string, id: string, employeeData: Partial<InsertEmployee>): Promise<Employee | undefined> {
     const employee = this.employees.get(id);
-    if (!employee) return undefined;
+    if (!employee || employee.userId !== userId) return undefined;
+    
     const updated = { ...employee, ...employeeData };
     this.employees.set(id, updated);
     return updated;
   }
 
-  async deleteEmployee(id: string): Promise<boolean> {
+  async deleteEmployee(userId: string, id: string): Promise<boolean> {
+    const employee = this.employees.get(id);
+    if (!employee || employee.userId !== userId) return false;
     return this.employees.delete(id);
   }
 
-  // Vehicle methods
-  async getVehicle(id: string): Promise<Vehicle | undefined> {
-    return this.vehicles.get(id);
+  // Vehicle methods - with userId filtering
+  async getVehicle(userId: string, id: string): Promise<Vehicle | undefined> {
+    const vehicle = this.vehicles.get(id);
+    return (vehicle && vehicle.userId === userId) ? vehicle : undefined;
   }
 
-  async getAllVehicles(): Promise<Vehicle[]> {
-    return Array.from(this.vehicles.values());
+  async getAllVehicles(userId: string): Promise<Vehicle[]> {
+    return Array.from(this.vehicles.values())
+      .filter(v => v.userId === userId);
   }
 
-  async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+  async createVehicle(userId: string, insertVehicle: InsertVehicle): Promise<Vehicle> {
     const id = randomUUID();
-    const vehicle: Vehicle = { ...insertVehicle, id };
+    const vehicle: Vehicle = { ...insertVehicle, id, userId };
     this.vehicles.set(id, vehicle);
     return vehicle;
   }
 
-  async updateVehicle(id: string, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+  async updateVehicle(userId: string, id: string, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
     const vehicle = this.vehicles.get(id);
-    if (!vehicle) return undefined;
+    if (!vehicle || vehicle.userId !== userId) return undefined;
+    
     const updated = { ...vehicle, ...vehicleData };
     this.vehicles.set(id, updated);
     return updated;
   }
 
-  async deleteVehicle(id: string): Promise<boolean> {
+  async deleteVehicle(userId: string, id: string): Promise<boolean> {
+    const vehicle = this.vehicles.get(id);
+    if (!vehicle || vehicle.userId !== userId) return false;
     return this.vehicles.delete(id);
   }
 
-  // Roles methods (legacy array-based)
-  async getAllRoles(): Promise<string[]> {
-    return Array.from(this.roles.values()).map(r => r.name);
+  // Roles methods (legacy array-based) - with userId filtering
+  async getAllRoles(userId: string): Promise<string[]> {
+    const roleRecords = Array.from(this.roles.values())
+      .filter(r => r.userId === userId);
+    return roleRecords.map(r => r.name);
   }
 
-  async saveRoles(roles: string[]): Promise<string[]> {
-    // Check for duplicates in the input array (case-insensitive)
-    const normalizedNames = roles.map(name => name.toLowerCase());
-    const uniqueNames = new Set(normalizedNames);
-    if (uniqueNames.size !== roles.length) {
-      throw new Error('Duplicate role names are not allowed');
-    }
+  async saveRoles(userId: string, roles: string[]): Promise<string[]> {
+    // Delete existing roles for this user
+    Array.from(this.roles.entries()).forEach(([id, role]) => {
+      if (role.userId === userId) {
+        this.roles.delete(id);
+      }
+    });
     
-    // Clear existing and add new roles
-    this.roles.clear();
+    // Insert new roles
     roles.forEach(name => {
       const id = randomUUID();
-      this.roles.set(id, { id, name });
+      this.roles.set(id, { id, userId, name });
     });
+    
     return roles;
   }
 
-  // Roles CRUD methods (individual role management)
-  async getRole(id: string): Promise<Role | undefined> {
-    return this.roles.get(id);
+  // Roles CRUD methods - with userId filtering
+  async getRole(userId: string, id: string): Promise<Role | undefined> {
+    const role = this.roles.get(id);
+    return (role && role.userId === userId) ? role : undefined;
   }
 
-  async getAllRolesDetailed(): Promise<Role[]> {
-    return Array.from(this.roles.values());
+  async getAllRolesDetailed(userId: string): Promise<Role[]> {
+    return Array.from(this.roles.values())
+      .filter(r => r.userId === userId);
   }
 
-  async createRole(insertRole: InsertRole): Promise<Role> {
-    // Check for duplicate name
+  async createRole(userId: string, insertRole: InsertRole): Promise<Role> {
+    // Check for duplicate name within user's roles
     const existingRole = Array.from(this.roles.values()).find(
-      r => r.name.toLowerCase() === insertRole.name.toLowerCase()
+      r => r.userId === userId && r.name.toLowerCase() === insertRole.name.toLowerCase()
     );
     if (existingRole) {
       throw new Error(`Role with name "${insertRole.name}" already exists`);
     }
     
     const id = randomUUID();
-    const role: Role = { id, name: insertRole.name };
+    const role: Role = { id, userId, name: insertRole.name };
     this.roles.set(id, role);
     return role;
   }
 
-  async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
+  async updateRole(userId: string, id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
     const role = this.roles.get(id);
-    if (!role) return undefined;
+    if (!role || role.userId !== userId) return undefined;
     
     // Check for duplicate name if name is being updated
     if (roleData.name && roleData.name !== role.name) {
       const newName = roleData.name;
       const existingRole = Array.from(this.roles.values()).find(
-        r => r.id !== id && r.name.toLowerCase() === newName.toLowerCase()
+        r => r.userId === userId && r.id !== id && r.name.toLowerCase() === newName.toLowerCase()
       );
       if (existingRole) {
         throw new Error(`Role with name "${newName}" already exists`);
@@ -303,58 +307,67 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteRole(id: string): Promise<boolean> {
+  async deleteRole(userId: string, id: string): Promise<boolean> {
+    const role = this.roles.get(id);
+    if (!role || role.userId !== userId) return false;
     return this.roles.delete(id);
   }
 
-  // Employee Absence methods
-  async getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined> {
-    return this.employeeAbsences.get(id);
+  // Employee Absence methods - with userId filtering
+  async getEmployeeAbsence(userId: string, id: string): Promise<EmployeeAbsence | undefined> {
+    const absence = this.employeeAbsences.get(id);
+    return (absence && absence.userId === userId) ? absence : undefined;
   }
 
-  async getAllAbsences(): Promise<EmployeeAbsence[]> {
-    return Array.from(this.employeeAbsences.values());
+  async getAllAbsences(userId: string): Promise<EmployeeAbsence[]> {
+    return Array.from(this.employeeAbsences.values())
+      .filter(a => a.userId === userId);
   }
 
-  async getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]> {
+  async getEmployeeAbsencesByEmployeeId(userId: string, employeeId: string): Promise<EmployeeAbsence[]> {
     return Array.from(this.employeeAbsences.values()).filter(
-      absence => absence.employeeId === employeeId
+      absence => absence.userId === userId && absence.employeeId === employeeId
     );
   }
 
-  async createEmployeeAbsence(insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
+  async createEmployeeAbsence(userId: string, insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
     const id = randomUUID();
-    const absence: EmployeeAbsence = { ...insertAbsence, id };
+    const absence: EmployeeAbsence = { ...insertAbsence, id, userId };
     this.employeeAbsences.set(id, absence);
     return absence;
   }
 
-  async deleteEmployeeAbsence(id: string): Promise<boolean> {
+  async deleteEmployeeAbsence(userId: string, id: string): Promise<boolean> {
+    const absence = this.employeeAbsences.get(id);
+    if (!absence || absence.userId !== userId) return false;
     return this.employeeAbsences.delete(id);
   }
 
-  // Daily Assignment methods
-  async getDailyAssignment(id: string): Promise<DailyAssignment | undefined> {
-    return this.dailyAssignments.get(id);
+  // Daily Assignment methods - with userId filtering
+  async getDailyAssignment(userId: string, id: string): Promise<DailyAssignment | undefined> {
+    const assignment = this.dailyAssignments.get(id);
+    return (assignment && assignment.userId === userId) ? assignment : undefined;
   }
 
-  async getAllDailyAssignments(): Promise<DailyAssignment[]> {
-    // Sort by date descending (newest first)
+  async getAllDailyAssignments(userId: string): Promise<DailyAssignment[]> {
     return Array.from(this.dailyAssignments.values())
+      .filter(a => a.userId === userId)
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  async getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]> {
+  async getDailyAssignmentsByDate(userId: string, date: string): Promise<DailyAssignment[]> {
     return Array.from(this.dailyAssignments.values())
-      .filter(assignment => assignment.date === date);
+      .filter(assignment => assignment.userId === userId && assignment.date === date);
   }
 
-  async createDailyAssignment(insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
+  async createDailyAssignment(userId: string, insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
     const id = randomUUID();
     const assignment: DailyAssignment = { 
       ...insertAssignment,
+      userId,
       comments: insertAssignment.comments ?? '',
       depositoAssignments: insertAssignment.depositoAssignments ?? '[]',
+      depositoComments: insertAssignment.depositoComments ?? '',
       id,
       createdAt: new Date()
     };
@@ -362,13 +375,15 @@ export class MemStorage implements IStorage {
     return assignment;
   }
 
-  async deleteDailyAssignment(id: string): Promise<boolean> {
+  async deleteDailyAssignment(userId: string, id: string): Promise<boolean> {
+    const assignment = this.dailyAssignments.get(id);
+    if (!assignment || assignment.userId !== userId) return false;
     return this.dailyAssignments.delete(id);
   }
 
-  async deleteDailyAssignmentsByDate(date: string): Promise<number> {
+  async deleteDailyAssignmentsByDate(userId: string, date: string): Promise<number> {
     const assignmentsToDelete = Array.from(this.dailyAssignments.values())
-      .filter(assignment => assignment.date === date);
+      .filter(assignment => assignment.userId === userId && assignment.date === date);
     
     assignmentsToDelete.forEach(assignment => {
       this.dailyAssignments.delete(assignment.id);
@@ -377,14 +392,15 @@ export class MemStorage implements IStorage {
     return assignmentsToDelete.length;
   }
 
-  // Template methods
-  async getTemplate(id: string): Promise<Template | undefined> {
-    return this.templates.get(id);
+  // Template methods - with userId filtering
+  async getTemplate(userId: string, id: string): Promise<Template | undefined> {
+    const template = this.templates.get(id);
+    return (template && template.userId === userId) ? template : undefined;
   }
 
-  async getAllTemplates(): Promise<Template[]> {
-    // Sort by createdAt descending (newest first)
+  async getAllTemplates(userId: string): Promise<Template[]> {
     return Array.from(this.templates.values())
+      .filter(t => t.userId === userId)
       .sort((a, b) => {
         const dateA = a.createdAt?.getTime() || 0;
         const dateB = b.createdAt?.getTime() || 0;
@@ -392,12 +408,14 @@ export class MemStorage implements IStorage {
       });
   }
 
-  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+  async createTemplate(userId: string, insertTemplate: InsertTemplate): Promise<Template> {
     const id = randomUUID();
     const template: Template = { 
       ...insertTemplate,
+      userId,
       comments: insertTemplate.comments ?? '',
       depositoAssignments: insertTemplate.depositoAssignments ?? '[]',
+      depositoComments: insertTemplate.depositoComments ?? '',
       id,
       createdAt: new Date()
     };
@@ -405,33 +423,36 @@ export class MemStorage implements IStorage {
     return template;
   }
 
-  async deleteTemplate(id: string): Promise<boolean> {
+  async deleteTemplate(userId: string, id: string): Promise<boolean> {
+    const template = this.templates.get(id);
+    if (!template || template.userId !== userId) return false;
     return this.templates.delete(id);
   }
 }
 
 // DatabaseStorage implementation using PostgreSQL with Drizzle ORM
-// Referenced from blueprint:javascript_database
 export class DatabaseStorage implements IStorage {
-  // User methods - Required for Replit Auth
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  // User methods
+  async registerUser(userData: RegisterUser & { passwordHash: string }): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
+      .values({
+        username: userData.username,
+        email: userData.email,
+        passwordHash: userData.passwordHash,
       })
       .returning();
     return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -453,7 +474,6 @@ export class DatabaseStorage implements IStorage {
 
   async shouldPromoteToFirstAdmin(userId: string): Promise<boolean> {
     // Atomically update user to admin if no other admins exist
-    // This prevents race conditions where multiple users could become admin
     const result = await db.execute(
       sql`
         UPDATE ${users}
@@ -469,204 +489,256 @@ export class DatabaseStorage implements IStorage {
       `
     );
     
-    // Return true if a row was updated (meaning this user became the first admin)
     return (result.rowCount ?? 0) > 0;
   }
 
-  // Employee methods
-  async getEmployee(id: string): Promise<Employee | undefined> {
-    const [employee] = await db.select().from(employees).where(eq(employees.id, id));
+  // Employee methods - with userId filtering
+  async getEmployee(userId: string, id: string): Promise<Employee | undefined> {
+    const [employee] = await db
+      .select()
+      .from(employees)
+      .where(and(eq(employees.id, id), eq(employees.userId, userId)));
     return employee || undefined;
   }
 
-  async getAllEmployees(): Promise<Employee[]> {
-    return await db.select().from(employees);
+  async getAllEmployees(userId: string): Promise<Employee[]> {
+    return await db.select().from(employees).where(eq(employees.userId, userId));
   }
 
-  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+  async createEmployee(userId: string, insertEmployee: InsertEmployee): Promise<Employee> {
     const [employee] = await db
       .insert(employees)
-      .values(insertEmployee)
+      .values({ ...insertEmployee, userId })
       .returning();
     return employee;
   }
 
-  async updateEmployee(id: string, employeeData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+  async updateEmployee(userId: string, id: string, employeeData: Partial<InsertEmployee>): Promise<Employee | undefined> {
     const [updated] = await db
       .update(employees)
       .set(employeeData)
-      .where(eq(employees.id, id))
+      .where(and(eq(employees.id, id), eq(employees.userId, userId)))
       .returning();
     return updated || undefined;
   }
 
-  async deleteEmployee(id: string): Promise<boolean> {
-    const result = await db.delete(employees).where(eq(employees.id, id)).returning();
+  async deleteEmployee(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(employees)
+      .where(and(eq(employees.id, id), eq(employees.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Vehicle methods
-  async getVehicle(id: string): Promise<Vehicle | undefined> {
-    const [vehicle] = await db.select().from(vehicles).where(eq(vehicles.id, id));
+  // Vehicle methods - with userId filtering
+  async getVehicle(userId: string, id: string): Promise<Vehicle | undefined> {
+    const [vehicle] = await db
+      .select()
+      .from(vehicles)
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, userId)));
     return vehicle || undefined;
   }
 
-  async getAllVehicles(): Promise<Vehicle[]> {
-    return await db.select().from(vehicles);
+  async getAllVehicles(userId: string): Promise<Vehicle[]> {
+    return await db.select().from(vehicles).where(eq(vehicles.userId, userId));
   }
 
-  async createVehicle(insertVehicle: InsertVehicle): Promise<Vehicle> {
+  async createVehicle(userId: string, insertVehicle: InsertVehicle): Promise<Vehicle> {
     const [vehicle] = await db
       .insert(vehicles)
-      .values(insertVehicle)
+      .values({ ...insertVehicle, userId })
       .returning();
     return vehicle;
   }
 
-  async updateVehicle(id: string, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+  async updateVehicle(userId: string, id: string, vehicleData: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
     const [updated] = await db
       .update(vehicles)
       .set(vehicleData)
-      .where(eq(vehicles.id, id))
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, userId)))
       .returning();
     return updated || undefined;
   }
 
-  async deleteVehicle(id: string): Promise<boolean> {
-    const result = await db.delete(vehicles).where(eq(vehicles.id, id)).returning();
+  async deleteVehicle(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(vehicles)
+      .where(and(eq(vehicles.id, id), eq(vehicles.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Roles methods (legacy array-based)
-  async getAllRoles(): Promise<string[]> {
-    const roleRecords = await db.select().from(rolesTable);
+  // Roles methods (legacy array-based) - with userId filtering
+  async getAllRoles(userId: string): Promise<string[]> {
+    const roleRecords = await db.select().from(rolesTable).where(eq(rolesTable.userId, userId));
     return roleRecords.map(r => r.name);
   }
 
-  async saveRoles(roles: string[]): Promise<string[]> {
-    // Clear existing roles and insert new ones
-    await db.delete(rolesTable);
+  async saveRoles(userId: string, roles: string[]): Promise<string[]> {
+    // Clear existing roles for this user and insert new ones
+    await db.delete(rolesTable).where(eq(rolesTable.userId, userId));
     
     if (roles.length > 0) {
       await db.insert(rolesTable).values(
-        roles.map(name => ({ name }))
+        roles.map(name => ({ name, userId }))
       );
     }
     
     return roles;
   }
 
-  // Roles CRUD methods (individual role management)
-  async getRole(id: string): Promise<Role | undefined> {
-    const [role] = await db.select().from(rolesTable).where(eq(rolesTable.id, id));
+  // Roles CRUD methods - with userId filtering
+  async getRole(userId: string, id: string): Promise<Role | undefined> {
+    const [role] = await db
+      .select()
+      .from(rolesTable)
+      .where(and(eq(rolesTable.id, id), eq(rolesTable.userId, userId)));
     return role || undefined;
   }
 
-  async getAllRolesDetailed(): Promise<Role[]> {
-    return await db.select().from(rolesTable);
+  async getAllRolesDetailed(userId: string): Promise<Role[]> {
+    return await db.select().from(rolesTable).where(eq(rolesTable.userId, userId));
   }
 
-  async createRole(insertRole: InsertRole): Promise<Role> {
+  async createRole(userId: string, insertRole: InsertRole): Promise<Role> {
     const [role] = await db
       .insert(rolesTable)
-      .values(insertRole)
+      .values({ ...insertRole, userId })
       .returning();
     return role;
   }
 
-  async updateRole(id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
+  async updateRole(userId: string, id: string, roleData: Partial<InsertRole>): Promise<Role | undefined> {
     const [updated] = await db
       .update(rolesTable)
       .set(roleData)
-      .where(eq(rolesTable.id, id))
+      .where(and(eq(rolesTable.id, id), eq(rolesTable.userId, userId)))
       .returning();
     return updated || undefined;
   }
 
-  async deleteRole(id: string): Promise<boolean> {
-    const result = await db.delete(rolesTable).where(eq(rolesTable.id, id)).returning();
+  async deleteRole(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(rolesTable)
+      .where(and(eq(rolesTable.id, id), eq(rolesTable.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Employee Absence methods
-  async getEmployeeAbsence(id: string): Promise<EmployeeAbsence | undefined> {
-    const [absence] = await db.select().from(employeeAbsences).where(eq(employeeAbsences.id, id));
+  // Employee Absence methods - with userId filtering
+  async getEmployeeAbsence(userId: string, id: string): Promise<EmployeeAbsence | undefined> {
+    const [absence] = await db
+      .select()
+      .from(employeeAbsences)
+      .where(and(eq(employeeAbsences.id, id), eq(employeeAbsences.userId, userId)));
     return absence || undefined;
   }
 
-  async getAllAbsences(): Promise<EmployeeAbsence[]> {
-    return await db.select().from(employeeAbsences);
+  async getAllAbsences(userId: string): Promise<EmployeeAbsence[]> {
+    return await db.select().from(employeeAbsences).where(eq(employeeAbsences.userId, userId));
   }
 
-  async getEmployeeAbsencesByEmployeeId(employeeId: string): Promise<EmployeeAbsence[]> {
-    return await db.select().from(employeeAbsences).where(eq(employeeAbsences.employeeId, employeeId));
+  async getEmployeeAbsencesByEmployeeId(userId: string, employeeId: string): Promise<EmployeeAbsence[]> {
+    return await db
+      .select()
+      .from(employeeAbsences)
+      .where(and(eq(employeeAbsences.employeeId, employeeId), eq(employeeAbsences.userId, userId)));
   }
 
-  async createEmployeeAbsence(insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
+  async createEmployeeAbsence(userId: string, insertAbsence: InsertEmployeeAbsence): Promise<EmployeeAbsence> {
     const [absence] = await db
       .insert(employeeAbsences)
-      .values(insertAbsence)
+      .values({ ...insertAbsence, userId })
       .returning();
     return absence;
   }
 
-  async deleteEmployeeAbsence(id: string): Promise<boolean> {
-    const result = await db.delete(employeeAbsences).where(eq(employeeAbsences.id, id)).returning();
+  async deleteEmployeeAbsence(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(employeeAbsences)
+      .where(and(eq(employeeAbsences.id, id), eq(employeeAbsences.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 
-  // Daily Assignment methods
-  async getDailyAssignment(id: string): Promise<DailyAssignment | undefined> {
-    const [assignment] = await db.select().from(dailyAssignments).where(eq(dailyAssignments.id, id));
+  // Daily Assignment methods - with userId filtering
+  async getDailyAssignment(userId: string, id: string): Promise<DailyAssignment | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(dailyAssignments)
+      .where(and(eq(dailyAssignments.id, id), eq(dailyAssignments.userId, userId)));
     return assignment || undefined;
   }
 
-  async getAllDailyAssignments(): Promise<DailyAssignment[]> {
-    return await db.select().from(dailyAssignments).orderBy(desc(dailyAssignments.date));
+  async getAllDailyAssignments(userId: string): Promise<DailyAssignment[]> {
+    return await db
+      .select()
+      .from(dailyAssignments)
+      .where(eq(dailyAssignments.userId, userId))
+      .orderBy(desc(dailyAssignments.date));
   }
 
-  async getDailyAssignmentsByDate(date: string): Promise<DailyAssignment[]> {
-    return await db.select().from(dailyAssignments).where(eq(dailyAssignments.date, date));
+  async getDailyAssignmentsByDate(userId: string, date: string): Promise<DailyAssignment[]> {
+    return await db
+      .select()
+      .from(dailyAssignments)
+      .where(and(eq(dailyAssignments.date, date), eq(dailyAssignments.userId, userId)));
   }
 
-  async createDailyAssignment(insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
+  async createDailyAssignment(userId: string, insertAssignment: InsertDailyAssignment): Promise<DailyAssignment> {
     const [assignment] = await db
       .insert(dailyAssignments)
-      .values(insertAssignment)
+      .values({ ...insertAssignment, userId })
       .returning();
     return assignment;
   }
 
-  async deleteDailyAssignment(id: string): Promise<boolean> {
-    const result = await db.delete(dailyAssignments).where(eq(dailyAssignments.id, id)).returning();
+  async deleteDailyAssignment(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(dailyAssignments)
+      .where(and(eq(dailyAssignments.id, id), eq(dailyAssignments.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 
-  async deleteDailyAssignmentsByDate(date: string): Promise<number> {
-    const result = await db.delete(dailyAssignments).where(eq(dailyAssignments.date, date)).returning();
+  async deleteDailyAssignmentsByDate(userId: string, date: string): Promise<number> {
+    const result = await db
+      .delete(dailyAssignments)
+      .where(and(eq(dailyAssignments.date, date), eq(dailyAssignments.userId, userId)))
+      .returning();
     return result.length;
   }
 
-  // Template methods
-  async getTemplate(id: string): Promise<Template | undefined> {
-    const [template] = await db.select().from(templates).where(eq(templates.id, id));
+  // Template methods - with userId filtering
+  async getTemplate(userId: string, id: string): Promise<Template | undefined> {
+    const [template] = await db
+      .select()
+      .from(templates)
+      .where(and(eq(templates.id, id), eq(templates.userId, userId)));
     return template || undefined;
   }
 
-  async getAllTemplates(): Promise<Template[]> {
-    return await db.select().from(templates).orderBy(desc(templates.createdAt));
+  async getAllTemplates(userId: string): Promise<Template[]> {
+    return await db
+      .select()
+      .from(templates)
+      .where(eq(templates.userId, userId))
+      .orderBy(desc(templates.createdAt));
   }
 
-  async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
+  async createTemplate(userId: string, insertTemplate: InsertTemplate): Promise<Template> {
     const [template] = await db
       .insert(templates)
-      .values(insertTemplate)
+      .values({ ...insertTemplate, userId })
       .returning();
     return template;
   }
 
-  async deleteTemplate(id: string): Promise<boolean> {
-    const result = await db.delete(templates).where(eq(templates.id, id)).returning();
+  async deleteTemplate(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(templates)
+      .where(and(eq(templates.id, id), eq(templates.userId, userId)))
+      .returning();
     return result.length > 0;
   }
 }
