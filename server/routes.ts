@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { isAuthenticated, isApproved, isAdmin } from "./replitAuth";
 import { 
   insertEmployeeAbsenceSchema, 
   insertDailyAssignmentSchema,
@@ -11,8 +12,81 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Employee routes
-  app.get("/api/employees", async (req, res) => {
+  // Auth status route (public)
+  app.get("/api/auth/status", isAuthenticated, async (req, res) => {
+    try {
+      const sessionUser = req.user as any;
+      const userId = sessionUser?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ authenticated: false });
+      }
+
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ authenticated: true, user: null });
+      }
+
+      res.json({
+        authenticated: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profileImageUrl: user.profileImageUrl,
+          role: user.role,
+          isApproved: user.isApproved,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin routes - user management
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/approve-user/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.updateUserApproval(id, true);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/reject-user/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.updateUserApproval(id, false);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Employee routes (protected - requires approved user)
+  app.get("/api/employees", isApproved, async (req, res) => {
     try {
       const employees = await storage.getAllEmployees();
       res.json(employees);
@@ -21,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", async (req, res) => {
+  app.post("/api/employees", isApproved, async (req, res) => {
     try {
       const result = insertEmployeeSchema.safeParse(req.body);
       
@@ -37,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/employees/:id", async (req, res) => {
+  app.put("/api/employees/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertEmployeeSchema.partial().safeParse(req.body);
@@ -59,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/employees/:id", async (req, res) => {
+  app.delete("/api/employees/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteEmployee(id);
@@ -74,8 +148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vehicle routes
-  app.get("/api/vehicles", async (req, res) => {
+  // Vehicle routes (protected)
+  app.get("/api/vehicles", isApproved, async (req, res) => {
     try {
       const vehicles = await storage.getAllVehicles();
       res.json(vehicles);
@@ -84,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/vehicles", async (req, res) => {
+  app.post("/api/vehicles", isApproved, async (req, res) => {
     try {
       const result = insertVehicleSchema.safeParse(req.body);
       
@@ -100,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/vehicles/:id", async (req, res) => {
+  app.put("/api/vehicles/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertVehicleSchema.partial().safeParse(req.body);
@@ -122,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/vehicles/:id", async (req, res) => {
+  app.delete("/api/vehicles/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteVehicle(id);
@@ -137,8 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Roles routes
-  app.get("/api/roles", async (req, res) => {
+  // Roles routes (protected)
+  app.get("/api/roles", isApproved, async (req, res) => {
     try {
       const roles = await storage.getAllRoles();
       res.json(roles);
@@ -147,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/roles", async (req, res) => {
+  app.post("/api/roles", isApproved, async (req, res) => {
     try {
       const { roles } = req.body;
       
@@ -162,8 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Individual Role CRUD routes
-  app.get("/api/roles-detailed", async (req, res) => {
+  // Individual Role CRUD routes (protected)
+  app.get("/api/roles-detailed", isApproved, async (req, res) => {
     try {
       const roles = await storage.getAllRolesDetailed();
       res.json(roles);
@@ -172,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/roles-detailed", async (req, res) => {
+  app.post("/api/roles-detailed", isApproved, async (req, res) => {
     try {
       const result = insertRoleSchema.safeParse(req.body);
       
@@ -192,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/roles-detailed/:id", async (req, res) => {
+  app.put("/api/roles-detailed/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertRoleSchema.partial().safeParse(req.body);
@@ -218,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/roles-detailed/:id", async (req, res) => {
+  app.delete("/api/roles-detailed/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteRole(id);
@@ -233,8 +307,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily Assignments routes
-  app.get("/api/daily-assignments", async (req, res) => {
+  // Daily Assignments routes (protected)
+  app.get("/api/daily-assignments", isApproved, async (req, res) => {
     try {
       const date = req.query.date as string | undefined;
       
@@ -251,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/daily-assignments", async (req, res) => {
+  app.post("/api/daily-assignments", isApproved, async (req, res) => {
     try {
       const result = insertDailyAssignmentSchema.safeParse(req.body);
       
@@ -267,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/daily-assignments/:id", async (req, res) => {
+  app.delete("/api/daily-assignments/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteDailyAssignment(id);
@@ -282,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/daily-assignments/by-date/:date", async (req, res) => {
+  app.delete("/api/daily-assignments/by-date/:date", isApproved, async (req, res) => {
     try {
       const { date } = req.params;
       const deletedCount = await storage.deleteDailyAssignmentsByDate(date);
@@ -293,8 +367,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Employee Absences routes
-  app.get("/api/absences", async (req, res) => {
+  // Employee Absences routes (protected)
+  app.get("/api/absences", isApproved, async (req, res) => {
     try {
       const employeeId = req.query.employeeId as string | undefined;
       
@@ -311,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/absences", async (req, res) => {
+  app.post("/api/absences", isApproved, async (req, res) => {
     try {
       const result = insertEmployeeAbsenceSchema.safeParse(req.body);
       
@@ -327,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/absences/:id", async (req, res) => {
+  app.delete("/api/absences/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteEmployeeAbsence(id);
@@ -342,8 +416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Template routes
-  app.get("/api/templates", async (req, res) => {
+  // Template routes (protected)
+  app.get("/api/templates", isApproved, async (req, res) => {
     try {
       const templates = await storage.getAllTemplates();
       res.json(templates);
@@ -352,7 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/templates", async (req, res) => {
+  app.post("/api/templates", isApproved, async (req, res) => {
     try {
       const result = insertTemplateSchema.safeParse(req.body);
       
@@ -368,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/templates/:id", async (req, res) => {
+  app.delete("/api/templates/:id", isApproved, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteTemplate(id);
