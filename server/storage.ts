@@ -12,12 +12,15 @@ import {
   type InsertTemplate,
   type Role,
   type InsertRole,
+  type User,
+  type UpsertUser,
   employees,
   vehicles,
   employeeAbsences,
   dailyAssignments,
   templates,
-  roles as rolesTable
+  roles as rolesTable,
+  users
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -26,6 +29,12 @@ import { eq, desc } from "drizzle-orm";
 // you might need
 
 export interface IStorage {
+  // User methods - Required for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined>;
+
   // Employee methods
   getEmployee(id: string): Promise<Employee | undefined>;
   getAllEmployees(): Promise<Employee[]>;
@@ -74,6 +83,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User>;
   private employees: Map<string, Employee>;
   private vehicles: Map<string, Vehicle>;
   private roles: Map<string, Role>;
@@ -82,6 +92,7 @@ export class MemStorage implements IStorage {
   private templates: Map<string, Template>;
 
   constructor() {
+    this.users = new Map();
     this.employees = new Map();
     this.vehicles = new Map();
     this.roles = new Map();
@@ -95,6 +106,58 @@ export class MemStorage implements IStorage {
       const id = randomUUID();
       this.roles.set(id, { id, name });
     });
+  }
+
+  // User methods - Required for Replit Auth
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existing = this.users.get(userData.id || '');
+    if (existing) {
+      const updated: User = {
+        ...existing,
+        ...userData,
+        updatedAt: new Date(),
+      };
+      this.users.set(existing.id, updated);
+      return updated;
+    } else {
+      const user: User = {
+        id: userData.id || randomUUID(),
+        email: userData.email || null,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
+        role: userData.role || 'user',
+        isApproved: userData.isApproved || false,
+        requestedAt: new Date(),
+        approvedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.users.set(user.id, user);
+      return user;
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .sort((a, b) => b.requestedAt.getTime() - a.requestedAt.getTime());
+  }
+
+  async updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated: User = {
+      ...user,
+      isApproved,
+      approvedAt: isApproved ? new Date() : null,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updated);
+    return updated;
   }
 
   // Employee methods
@@ -329,6 +392,44 @@ export class MemStorage implements IStorage {
 // DatabaseStorage implementation using PostgreSQL with Drizzle ORM
 // Referenced from blueprint:javascript_database
 export class DatabaseStorage implements IStorage {
+  // User methods - Required for Replit Auth
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.requestedAt));
+  }
+
+  async updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        isApproved, 
+        approvedAt: isApproved ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
   // Employee methods
   async getEmployee(id: string): Promise<Employee | undefined> {
     const [employee] = await db.select().from(employees).where(eq(employees.id, id));
