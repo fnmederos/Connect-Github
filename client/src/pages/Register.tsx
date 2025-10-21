@@ -46,8 +46,8 @@ export default function Register() {
         description: "Tu cuenta ha sido creada correctamente",
       });
 
-      // Force a full page reload to ensure clean state
-      window.location.href = response.user?.isApproved ? "/" : "/pending-approval";
+      // Go straight to dashboard
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Error al registrarse",

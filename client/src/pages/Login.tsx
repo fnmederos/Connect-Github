@@ -32,8 +32,8 @@ export default function Login() {
         description: "Bienvenido de vuelta",
       });
 
-      // Force a full page reload to ensure clean state
-      window.location.href = response.user?.isApproved ? "/" : "/pending-approval";
+      // Go straight to dashboard
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Error al iniciar sesión",

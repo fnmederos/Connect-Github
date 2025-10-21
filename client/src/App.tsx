@@ -212,12 +212,7 @@ function AppContent() {
     );
   }
 
-  // Show pending approval page if authenticated but not approved
-  if (!isApproved) {
-    return <PendingApproval />;
-  }
-
-  // Show authenticated app if approved
+  // Show authenticated app (all authenticated users go straight to dashboard)
   return <AuthenticatedApp />;
 }
 
