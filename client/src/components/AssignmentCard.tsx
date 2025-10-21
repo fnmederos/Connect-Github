@@ -217,18 +217,47 @@ export default function AssignmentCard({
         })}
       </div>
 
-      {/* Botón agregar */}
-      <div className="mt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAddRow}
-          className="gap-1 h-7 text-xs"
-          data-testid={`button-add-row-${vehicle.id}`}
-        >
-          <Plus className="w-3 h-3" />
-          Agregar línea
-        </Button>
+      {/* Botón agregar y Estado de carga en la misma fila */}
+      <div className="mt-2 flex gap-2 items-end">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddRow}
+            className="gap-1 h-9 text-xs"
+            data-testid={`button-add-row-${vehicle.id}`}
+          >
+            <Plus className="w-3 h-3" />
+            Agregar línea
+          </Button>
+        </div>
+        
+        {/* Estado de carga */}
+        <div className="flex-1">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Estado de Carga
+          </label>
+          <Select
+            value={loadingStatus}
+            onValueChange={onUpdateLoadingStatus}
+          >
+            <SelectTrigger 
+              className="h-9 text-xs" 
+              data-testid={`select-loading-status-${vehicle.id}`}
+            >
+              <SelectValue placeholder="Seleccionar estado..." />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingStatusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <span className={option.value ? `px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeColor(option.value)}` : ""}>
+                    {option.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Campo de comentarios para este vehículo */}
@@ -240,33 +269,6 @@ export default function AssignmentCard({
           className="min-h-[60px] text-xs resize-none"
           data-testid={`textarea-comments-${vehicle.id}`}
         />
-      </div>
-
-      {/* Estado de carga */}
-      <div className="mt-3">
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Estado de Carga
-        </label>
-        <Select
-          value={loadingStatus}
-          onValueChange={onUpdateLoadingStatus}
-        >
-          <SelectTrigger 
-            className="h-9 text-xs" 
-            data-testid={`select-loading-status-${vehicle.id}`}
-          >
-            <SelectValue placeholder="Seleccionar estado..." />
-          </SelectTrigger>
-          <SelectContent>
-            {loadingStatusOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <span className={option.value ? `px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeColor(option.value)}` : ""}>
-                  {option.label}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
     </Card>
   );
