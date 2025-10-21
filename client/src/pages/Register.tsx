@@ -46,8 +46,11 @@ export default function Register() {
         description: "Tu cuenta ha sido creada correctamente",
       });
 
-      // Go straight to dashboard
-      window.location.href = "/";
+      // Invalidate auth query to refetch user data
+      await queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      
+      // Navigate to dashboard using React Router (no page reload)
+      setLocation("/");
     } catch (error: any) {
       toast({
         title: "Error al registrarse",
