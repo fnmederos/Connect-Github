@@ -62,7 +62,6 @@ export default function AssignmentCard({
 }: AssignmentCardProps) {
   // Opciones de estado de carga
   const loadingStatusOptions = [
-    { value: "", label: "Sin estado" },
     { value: "CARGADO", label: "CARGADO" },
     { value: "1° EN CARGAR", label: "1° EN CARGAR" },
     { value: "2° EN CARGAR", label: "2° EN CARGAR" },
