@@ -23,7 +23,7 @@ import {
   users
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -34,6 +34,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined>;
+  shouldPromoteToFirstAdmin(userId: string): Promise<boolean>;
 
   // Employee methods
   getEmployee(id: string): Promise<Employee | undefined>;
@@ -158,6 +159,26 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, updated);
     return updated;
+  }
+
+  async shouldPromoteToFirstAdmin(userId: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user || user.role === 'admin') return false;
+    
+    // Check if any admin exists
+    const hasAdmin = Array.from(this.users.values()).some(u => u.role === 'admin');
+    if (hasAdmin) return false;
+    
+    // Promote this user to admin
+    const updated: User = {
+      ...user,
+      role: 'admin',
+      isApproved: true,
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    return true;
   }
 
   // Employee methods
@@ -428,6 +449,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async shouldPromoteToFirstAdmin(userId: string): Promise<boolean> {
+    // Atomically update user to admin if no other admins exist
+    // This prevents race conditions where multiple users could become admin
+    const result = await db.execute(
+      sql`
+        UPDATE ${users}
+        SET role = 'admin', 
+            is_approved = true, 
+            approved_at = NOW(), 
+            updated_at = NOW()
+        WHERE id = ${userId}
+          AND role != 'admin'
+          AND NOT EXISTS (
+            SELECT 1 FROM ${users} WHERE role = 'admin'
+          )
+      `
+    );
+    
+    // Return true if a row was updated (meaning this user became the first admin)
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Employee methods

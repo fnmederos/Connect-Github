@@ -58,13 +58,23 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  // First, create/update the user
+  const user = await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  
+  // Then check if this user should be promoted to admin (first user in system)
+  // This check happens after the user is created to avoid race conditions
+  if (user.role !== "admin") {
+    const shouldBeAdmin = await storage.shouldPromoteToFirstAdmin(user.id);
+    if (shouldBeAdmin) {
+      await storage.updateUserApproval(user.id, true);
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {

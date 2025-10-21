@@ -12,20 +12,25 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth status route (public)
-  app.get("/api/auth/status", isAuthenticated, async (req, res) => {
+  // Auth status route (public - no authentication required)
+  app.get("/api/auth/status", async (req, res) => {
     try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.json({ authenticated: false, user: null });
+      }
+
       const sessionUser = req.user as any;
       const userId = sessionUser?.claims?.sub;
       
       if (!userId) {
-        return res.status(401).json({ authenticated: false });
+        return res.json({ authenticated: false, user: null });
       }
 
       const user = await storage.getUser(userId);
       
       if (!user) {
-        return res.status(404).json({ authenticated: true, user: null });
+        return res.json({ authenticated: true, user: null });
       }
 
       res.json({
