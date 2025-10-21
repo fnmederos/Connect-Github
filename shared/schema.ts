@@ -118,16 +118,18 @@ export type LoginUser = z.infer<typeof loginUserSchema>;
 
 export type User = typeof users.$inferSelect;
 
-export const insertRoleSchema = createInsertSchema(roles).omit({ id: true });
-export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
-export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true });
+export const insertRoleSchema = createInsertSchema(roles).omit({ id: true, userId: true });
+export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true, userId: true });
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({ id: true, userId: true });
 export const insertDailyAssignmentSchema = createInsertSchema(dailyAssignments).omit({ 
   id: true, 
+  userId: true,
   createdAt: true 
 });
-export const insertEmployeeAbsenceSchema = createInsertSchema(employeeAbsences).omit({ id: true });
+export const insertEmployeeAbsenceSchema = createInsertSchema(employeeAbsences).omit({ id: true, userId: true });
 export const insertTemplateSchema = createInsertSchema(templates).omit({ 
   id: true, 
+  userId: true,
   createdAt: true 
 });
 
