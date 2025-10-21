@@ -14,6 +14,7 @@ interface PlanningExportViewProps {
   vehicles: Vehicle[];
   vehicleAssignments: Record<string, AssignmentRow[]>;
   vehicleComments: Record<string, string>;
+  vehicleLoadingStatus: Record<string, string>;
   depositoTimeSlots: DepositoTimeSlot[];
   depositoComments: string;
   employees: Employee[];
@@ -24,6 +25,7 @@ export default function PlanningExportView({
   vehicles,
   vehicleAssignments,
   vehicleComments,
+  vehicleLoadingStatus,
   depositoTimeSlots,
   depositoComments,
   employees,
@@ -44,6 +46,23 @@ export default function PlanningExportView({
     return 'text-gray-700';
   };
 
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "CARGADO":
+        return "bg-green-600 text-white";
+      case "1° EN CARGAR":
+        return "bg-red-600 text-white";
+      case "2° EN CARGAR":
+        return "bg-orange-600 text-white";
+      case "3° EN CARGAR":
+        return "bg-yellow-600 text-black";
+      case "4° EN CARGAR":
+        return "bg-blue-600 text-white";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="bg-gray-50 p-6 min-w-[1000px]" data-testid="planning-export-view">
       {/* Encabezado compacto */}
@@ -60,8 +79,9 @@ export default function PlanningExportView({
             {vehicles.map((vehicle) => {
               const assignments = vehicleAssignments[vehicle.id] || [];
               const comments = vehicleComments[vehicle.id] || '';
+              const loadingStatus = vehicleLoadingStatus[vehicle.id] || '';
               
-              if (assignments.length === 0 && !comments) return null;
+              if (assignments.length === 0 && !comments && !loadingStatus) return null;
 
               return (
                 <div key={vehicle.id} className="border border-gray-400 bg-white p-2">
@@ -74,6 +94,13 @@ export default function PlanningExportView({
                     <span className="text-gray-700 font-mono">
                       ({vehicle.licensePlate})
                     </span>
+                    
+                    {/* Estado de carga badge */}
+                    {loadingStatus && (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${getStatusBadgeColor(loadingStatus)}`}>
+                        {loadingStatus}
+                      </span>
+                    )}
                     
                     {/* Separador */}
                     {assignments.length > 0 && (

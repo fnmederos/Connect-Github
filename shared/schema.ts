@@ -59,6 +59,8 @@ export const dailyAssignments = pgTable("daily_assignments", {
   assignmentRows: text("assignment_rows").notNull(),
   // Comments field for notes
   comments: text("comments").notNull().default(''),
+  // Loading status indicator for prioritization
+  loadingStatus: text("loading_status").notNull().default(''),
   // DEPOSITO assignments as JSON
   // Format: [{ timeSlot, employees: [{ employeeId, employeeName, isEncargado }] }]
   depositoAssignments: text("deposito_assignments").notNull().default('[]'),
@@ -88,6 +90,8 @@ export const templates = pgTable("templates", {
   assignmentData: text("assignment_data").notNull(),
   // Comments field for template notes
   comments: text("comments").notNull().default(''),
+  // Loading status per vehicle - Format: { [vehicleId]: "CARGADO" | "1° EN CARGAR" | etc }
+  loadingStatusData: text("loading_status_data").notNull().default('{}'),
   // DEPOSITO assignments for template
   depositoAssignments: text("deposito_assignments").notNull().default('[]'),
   // Comments for DEPOSITO section in template

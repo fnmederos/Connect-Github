@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [vehicleAssignments, setVehicleAssignments] = useState<Record<string, AssignmentRow[]>>({});
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
   const [vehicleComments, setVehicleComments] = useState<Record<string, string>>({});
+  const [vehicleLoadingStatus, setVehicleLoadingStatus] = useState<Record<string, string>>({});
   const [depositoTimeSlots, setDepositoTimeSlots] = useState<DepositoTimeSlot[]>([]);
   const [depositoComments, setDepositoComments] = useState<string>("");
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
@@ -338,6 +339,13 @@ export default function Dashboard() {
     }));
   };
 
+  const handleUpdateVehicleLoadingStatus = (vehicleId: string, status: string) => {
+    setVehicleLoadingStatus(prev => ({
+      ...prev,
+      [vehicleId]: status
+    }));
+  };
+
   const handleMoveVehicleUp = (vehicleId: string) => {
     setSelectedVehicleIds(prev => {
       const index = prev.indexOf(vehicleId);
@@ -473,6 +481,7 @@ export default function Dashboard() {
             vehicleLicensePlate: '',
             assignmentRows: JSON.stringify([]),
             comments: '',
+            loadingStatus: '',
             depositoAssignments: JSON.stringify(depositoTimeSlots),
             depositoComments: depositoComments
           }),
@@ -506,6 +515,7 @@ export default function Dashboard() {
               vehicleLicensePlate: vehicle.licensePlate,
               assignmentRows: JSON.stringify(assignmentRowsData),
               comments: vehicleComments[vehicle.id] || '',
+              loadingStatus: vehicleLoadingStatus[vehicle.id] || '',
               depositoAssignments: JSON.stringify(depositoTimeSlots),
               depositoComments: depositoComments
             }),
@@ -558,11 +568,18 @@ export default function Dashboard() {
         commentsData[vehicleId] = vehicleComments[vehicleId] || '';
       });
 
+      // Preparar estados de carga por vehículo
+      const loadingStatusData: Record<string, string> = {};
+      selectedVehicleIds.forEach(vehicleId => {
+        loadingStatusData[vehicleId] = vehicleLoadingStatus[vehicleId] || '';
+      });
+
       return await apiRequest('POST', '/api/templates', {
         name,
         vehicleIds: selectedVehicleIds,
         assignmentData: JSON.stringify(assignmentData),
         comments: JSON.stringify(commentsData),
+        loadingStatusData: JSON.stringify(loadingStatusData),
         depositoAssignments: JSON.stringify(depositoTimeSlots),
         depositoComments: depositoComments
       });
@@ -671,6 +688,18 @@ export default function Dashboard() {
         commentsPerVehicle[vehicleId] = legacyComment;
       });
       setVehicleComments(commentsPerVehicle);
+    }
+    
+    // Cargar estados de carga por vehículo
+    try {
+      const parsedLoadingStatus = JSON.parse(template.loadingStatusData || '{}');
+      if (typeof parsedLoadingStatus === 'object' && parsedLoadingStatus !== null && !Array.isArray(parsedLoadingStatus)) {
+        setVehicleLoadingStatus(parsedLoadingStatus);
+      } else {
+        setVehicleLoadingStatus({});
+      }
+    } catch {
+      setVehicleLoadingStatus({});
     }
     
     const depositoData = template.depositoAssignments ? JSON.parse(template.depositoAssignments) : [];
@@ -863,6 +892,7 @@ export default function Dashboard() {
                             availableRoles={availableRoles}
                             assignments={vehicleAssignments[vehicle.id] || []}
                             comments={vehicleComments[vehicle.id] || ''}
+                            loadingStatus={vehicleLoadingStatus[vehicle.id] || ''}
                             allAssignedEmployeeIds={allAssignedEmployeeIds}
                             canMoveUp={index > 0}
                             canMoveDown={index < selectedVehicles.length - 1}
@@ -872,6 +902,7 @@ export default function Dashboard() {
                             onUpdateEmployee={(rowId, empId) => handleUpdateEmployee(vehicle.id, rowId, empId)}
                             onUpdateTime={(rowId, time) => handleUpdateTime(vehicle.id, rowId, time)}
                             onUpdateComments={(comments) => handleUpdateVehicleComments(vehicle.id, comments)}
+                            onUpdateLoadingStatus={(status) => handleUpdateVehicleLoadingStatus(vehicle.id, status)}
                             onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
                             onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
                           />
@@ -934,6 +965,7 @@ export default function Dashboard() {
           vehicles={selectedVehicles}
           vehicleAssignments={vehicleAssignments}
           vehicleComments={vehicleComments}
+          vehicleLoadingStatus={vehicleLoadingStatus}
           depositoTimeSlots={depositoTimeSlots}
           depositoComments={depositoComments}
           employees={employees}

@@ -25,6 +25,7 @@ interface AssignmentCardProps {
   availableRoles: string[];
   assignments: AssignmentRow[];
   comments: string;
+  loadingStatus: string;
   allAssignedEmployeeIds: Set<string>;
   canMoveUp: boolean;
   canMoveDown: boolean;
@@ -34,6 +35,7 @@ interface AssignmentCardProps {
   onUpdateEmployee: (rowId: string, employeeId: string) => void;
   onUpdateTime: (rowId: string, time: string) => void;
   onUpdateComments: (comments: string) => void;
+  onUpdateLoadingStatus: (status: string) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
 }
@@ -44,6 +46,7 @@ export default function AssignmentCard({
   availableRoles,
   assignments = [],
   comments,
+  loadingStatus,
   allAssignedEmployeeIds,
   canMoveUp,
   canMoveDown,
@@ -53,9 +56,37 @@ export default function AssignmentCard({
   onUpdateEmployee,
   onUpdateTime,
   onUpdateComments,
+  onUpdateLoadingStatus,
   onMoveUp,
   onMoveDown,
 }: AssignmentCardProps) {
+  // Opciones de estado de carga
+  const loadingStatusOptions = [
+    { value: "", label: "Sin estado" },
+    { value: "CARGADO", label: "CARGADO" },
+    { value: "1° EN CARGAR", label: "1° EN CARGAR" },
+    { value: "2° EN CARGAR", label: "2° EN CARGAR" },
+    { value: "3° EN CARGAR", label: "3° EN CARGAR" },
+    { value: "4° EN CARGAR", label: "4° EN CARGAR" },
+  ];
+
+  // Badge color basado en el estado
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "CARGADO":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "1° EN CARGAR":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "2° EN CARGAR":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "3° EN CARGAR":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "4° EN CARGAR":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      default:
+        return "";
+    }
+  };
   return (
     <Card className="p-3" data-testid={`card-assignment-${vehicle.id}`}>
       {/* Encabezado: Vehículo */}
@@ -198,6 +229,40 @@ export default function AssignmentCard({
           className="min-h-[60px] text-xs resize-none"
           data-testid={`textarea-comments-${vehicle.id}`}
         />
+      </div>
+
+      {/* Estado de carga */}
+      <div className="mt-3">
+        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+          Estado de Carga
+        </label>
+        <Select
+          value={loadingStatus}
+          onValueChange={onUpdateLoadingStatus}
+        >
+          <SelectTrigger 
+            className="h-9 text-xs" 
+            data-testid={`select-loading-status-${vehicle.id}`}
+          >
+            <SelectValue placeholder="Seleccionar estado..." />
+          </SelectTrigger>
+          <SelectContent>
+            {loadingStatusOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <span className={option.value ? `px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeColor(option.value)}` : ""}>
+                  {option.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {loadingStatus && (
+          <div className="mt-2">
+            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusBadgeColor(loadingStatus)}`}>
+              {loadingStatus}
+            </span>
+          </div>
+        )}
       </div>
     </Card>
   );
