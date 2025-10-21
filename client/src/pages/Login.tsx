@@ -27,22 +27,13 @@ export default function Login() {
         password: formData.password,
       });
 
-      // Refetch auth to update the app state
-      await queryClient.refetchQueries({ queryKey: ['/api/me'] });
-
       toast({
         title: "Inicio de sesión exitoso",
         description: "Bienvenido de vuelta",
       });
 
-      // Small delay to ensure state is updated before navigation
-      setTimeout(() => {
-        if (response.user?.isApproved) {
-          setLocation("/");
-        } else {
-          setLocation("/pending-approval");
-        }
-      }, 100);
+      // Force a full page reload to ensure clean state
+      window.location.href = response.user?.isApproved ? "/" : "/pending-approval";
     } catch (error: any) {
       toast({
         title: "Error al iniciar sesión",
