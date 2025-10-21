@@ -3,7 +3,7 @@ import { pgTable, text, varchar, timestamp, boolean, jsonb, index } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table - Required for Replit Auth
+// Session storage table
 export const sessions = pgTable(
   "sessions",
   {
@@ -14,13 +14,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table - Required for Replit Auth + custom approval system
+// User storage table - Traditional username/password authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+  username: varchar("username").notNull().unique(),
+  email: varchar("email").notNull(),
+  passwordHash: varchar("password_hash").notNull(),
   // Custom fields for approval system
   role: varchar("role").notNull().default("user"), // "admin" or "user"
   isApproved: boolean("is_approved").notNull().default(false),
@@ -30,22 +29,27 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Each user has their own employees
 export const employees = pgTable("employees", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   roles: text("roles").array().notNull(),
   allowDuplicates: boolean("allow_duplicates").notNull().default(false),
 });
 
+// Each user has their own vehicles
 export const vehicles = pgTable("vehicles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   licensePlate: text("license_plate").notNull(),
 });
 
-// Daily assignment for a vehicle - structured for Excel export
+// Daily assignments per user
 export const dailyAssignments = pgTable("daily_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   date: text("date").notNull(), // ISO date string (YYYY-MM-DD)
   vehicleId: varchar("vehicle_id").notNull(),
   vehicleName: text("vehicle_name").notNull(),
@@ -63,17 +67,20 @@ export const dailyAssignments = pgTable("daily_assignments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Employee absences per user
 export const employeeAbsences = pgTable("employee_absences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   employeeId: varchar("employee_id").notNull(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   reason: text("reason").notNull(),
 });
 
-// Templates for reusable daily planning configurations
+// Templates for reusable daily planning configurations per user
 export const templates = pgTable("templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   vehicleIds: text("vehicle_ids").array().notNull(),
   // Store complete assignment configuration as JSON
@@ -88,20 +95,27 @@ export const templates = pgTable("templates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Roles configuration table
+// Roles configuration table per user
 export const roles = pgTable("roles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
 });
 
-// User schemas - for Replit Auth
-export const upsertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
-  updatedAt: true,
-  requestedAt: true,
-  approvedAt: true,
+// User schemas
+export const registerUserSchema = z.object({
+  username: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(6),
 });
-export type UpsertUser = z.infer<typeof upsertUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+
+export const loginUserSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+export type LoginUser = z.infer<typeof loginUserSchema>;
+
 export type User = typeof users.$inferSelect;
 
 export const insertRoleSchema = createInsertSchema(roles).omit({ id: true });
