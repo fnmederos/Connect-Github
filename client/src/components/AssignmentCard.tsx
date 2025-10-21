@@ -27,7 +27,6 @@ interface AssignmentCardProps {
   comments: string;
   loadingStatus: string;
   allAssignedEmployeeIds: Set<string>;
-  totalVehicles: number;
   canMoveUp: boolean;
   canMoveDown: boolean;
   onAddRow: () => void;
@@ -49,7 +48,6 @@ export default function AssignmentCard({
   comments,
   loadingStatus,
   allAssignedEmployeeIds,
-  totalVehicles,
   canMoveUp,
   canMoveDown,
   onAddRow,
@@ -62,10 +60,10 @@ export default function AssignmentCard({
   onMoveUp,
   onMoveDown,
 }: AssignmentCardProps) {
-  // Generar opciones de estado de carga dinámicamente
+  // Opciones de estado de carga - Siempre todas disponibles
   const loadingStatusOptions = [
     { value: "CARGADO", label: "CARGADO" },
-    ...Array.from({ length: totalVehicles - 1 }, (_, i) => ({
+    ...Array.from({ length: 15 }, (_, i) => ({
       value: `${i + 1}° EN CARGAR`,
       label: `${i + 1}° EN CARGAR`,
     })),
