@@ -435,6 +435,26 @@ export default function Dashboard() {
     });
   };
 
+  const handleRemoveVehicle = (vehicleId: string) => {
+    setSelectedVehicleIds(prev => prev.filter(id => id !== vehicleId));
+    // Limpiar assignments y comentarios de este vehículo
+    setVehicleAssignments(prev => {
+      const updated = { ...prev };
+      delete updated[vehicleId];
+      return updated;
+    });
+    setVehicleComments(prev => {
+      const updated = { ...prev };
+      delete updated[vehicleId];
+      return updated;
+    });
+    setVehicleLoadingStatus(prev => {
+      const updated = { ...prev };
+      delete updated[vehicleId];
+      return updated;
+    });
+  };
+
   // Handlers para DEPOSITO
   const handleAddDepositoTimeSlot = () => {
     setDepositoTimeSlots(prev => [...prev, {
@@ -978,6 +998,7 @@ export default function Dashboard() {
                             onUpdateLoadingStatus={(status) => handleUpdateVehicleLoadingStatus(vehicle.id, status)}
                             onMoveUp={() => handleMoveVehicleUp(vehicle.id)}
                             onMoveDown={() => handleMoveVehicleDown(vehicle.id)}
+                            onRemoveVehicle={() => handleRemoveVehicle(vehicle.id)}
                           />
                         ))}
                       </div>

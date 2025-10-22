@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Truck, Plus, X, ChevronUp, ChevronDown } from "lucide-react";
+import { Truck, Plus, X, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -38,6 +38,7 @@ interface AssignmentCardProps {
   onUpdateLoadingStatus: (status: string) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onRemoveVehicle: () => void;
 }
 
 export default function AssignmentCard({
@@ -59,6 +60,7 @@ export default function AssignmentCard({
   onUpdateLoadingStatus,
   onMoveUp,
   onMoveDown,
+  onRemoveVehicle,
 }: AssignmentCardProps) {
   // Opciones de estado de carga - Siempre todas disponibles
   const loadingStatusOptions = [
@@ -133,6 +135,15 @@ export default function AssignmentCard({
             data-testid={`button-move-down-${vehicle.id}`}
           >
             <ChevronDown className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={onRemoveVehicle}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            data-testid={`button-remove-vehicle-${vehicle.id}`}
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
