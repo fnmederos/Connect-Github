@@ -249,28 +249,31 @@ export default function Dashboard() {
 
   // Efecto para restaurar estado al montar el componente
   useEffect(() => {
-    const savedState = loadState();
-    if (savedState && !isStateRestored) {
-      setSelectedDate(new Date(savedState.selectedDate));
-      setSelectedVehicleIds(savedState.selectedVehicleIds);
-      setVehicleAssignments(savedState.assignmentRows);
-      setVehicleComments(savedState.vehicleComments);
-      setVehicleLoadingStatus(savedState.loadingStatuses);
-      
-      // Restaurar depósito - convertir del formato guardado al formato del componente
-      const depositoEntries = Object.entries(savedState.depotAssignments);
-      if (depositoEntries.length > 0) {
-        const slots: DepositoTimeSlot[] = depositoEntries.map(([slotId, data]) => {
-          const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-          return {
-            id: slotId,
-            timeSlot: parsed.timeSlot || slotId,
-            employees: parsed.employees || []
-          };
-        });
-        setDepositoTimeSlots(slots);
+    if (!isStateRestored) {
+      const savedState = loadState();
+      if (savedState) {
+        setSelectedDate(new Date(savedState.selectedDate));
+        setSelectedVehicleIds(savedState.selectedVehicleIds);
+        setVehicleAssignments(savedState.assignmentRows);
+        setVehicleComments(savedState.vehicleComments);
+        setVehicleLoadingStatus(savedState.loadingStatuses);
+        
+        // Restaurar depósito - convertir del formato guardado al formato del componente
+        const depositoEntries = Object.entries(savedState.depotAssignments);
+        if (depositoEntries.length > 0) {
+          const slots: DepositoTimeSlot[] = depositoEntries.map(([slotId, data]) => {
+            const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+            return {
+              id: slotId,
+              timeSlot: parsed.timeSlot || slotId,
+              employees: parsed.employees || []
+            };
+          });
+          setDepositoTimeSlots(slots);
+        }
       }
-      
+      // Marcar como restaurado incluso si no había estado guardado
+      // Esto permite que el efecto de guardado automático comience a funcionar
       setIsStateRestored(true);
     }
   }, [loadState, isStateRestored]);
