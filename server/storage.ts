@@ -12,6 +12,8 @@ import {
   type InsertTemplate,
   type Role,
   type InsertRole,
+  type Company,
+  type InsertCompany,
   type User,
   type RegisterUser,
   employees,
@@ -20,6 +22,7 @@ import {
   dailyAssignments,
   templates,
   roles as rolesTable,
+  companies,
   users
 } from "@shared/schema";
 import { db } from "./db";
@@ -80,6 +83,14 @@ export interface IStorage {
   getAllTemplates(userId: string): Promise<Template[]>;
   createTemplate(userId: string, template: InsertTemplate): Promise<Template>;
   deleteTemplate(userId: string, id: string): Promise<boolean>;
+
+  // Company methods - scoped by userId
+  getCompany(userId: string, id: string): Promise<Company | undefined>;
+  getAllCompanies(userId: string): Promise<Company[]>;
+  createCompany(userId: string, company: InsertCompany): Promise<Company>;
+  deleteCompany(userId: string, id: string): Promise<boolean>;
+  selectCompany(userId: string, companyId: string): Promise<User | undefined>;
+  getSelectedCompany(userId: string): Promise<Company | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -90,6 +101,7 @@ export class MemStorage implements IStorage {
   private employeeAbsences: Map<string, EmployeeAbsence>;
   private dailyAssignments: Map<string, DailyAssignment>;
   private templates: Map<string, Template>;
+  private companies: Map<string, Company>;
 
   constructor() {
     this.users = new Map();
@@ -99,6 +111,7 @@ export class MemStorage implements IStorage {
     this.employeeAbsences = new Map();
     this.dailyAssignments = new Map();
     this.templates = new Map();
+    this.companies = new Map();
   }
 
   // User methods
@@ -114,6 +127,7 @@ export class MemStorage implements IStorage {
       isApproved: false,
       requestedAt: now,
       approvedAt: null,
+      selectedCompanyId: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -366,6 +380,7 @@ export class MemStorage implements IStorage {
       ...insertAssignment,
       userId,
       comments: insertAssignment.comments ?? '',
+      loadingStatus: insertAssignment.loadingStatus ?? '',
       depositoAssignments: insertAssignment.depositoAssignments ?? '[]',
       depositoComments: insertAssignment.depositoComments ?? '',
       id,
@@ -414,6 +429,7 @@ export class MemStorage implements IStorage {
       ...insertTemplate,
       userId,
       comments: insertTemplate.comments ?? '',
+      loadingStatusData: insertTemplate.loadingStatusData ?? '{}',
       depositoAssignments: insertTemplate.depositoAssignments ?? '[]',
       depositoComments: insertTemplate.depositoComments ?? '',
       id,
@@ -427,6 +443,56 @@ export class MemStorage implements IStorage {
     const template = this.templates.get(id);
     if (!template || template.userId !== userId) return false;
     return this.templates.delete(id);
+  }
+
+  // Company methods - with userId filtering
+  async getCompany(userId: string, id: string): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    return (company && company.userId === userId) ? company : undefined;
+  }
+
+  async getAllCompanies(userId: string): Promise<Company[]> {
+    return Array.from(this.companies.values())
+      .filter(c => c.userId === userId)
+      .sort((a, b) => {
+        const dateA = a.createdAt?.getTime() || 0;
+        const dateB = b.createdAt?.getTime() || 0;
+        return dateB - dateA;
+      });
+  }
+
+  async createCompany(userId: string, insertCompany: InsertCompany): Promise<Company> {
+    const id = randomUUID();
+    const company: Company = { 
+      ...insertCompany,
+      userId,
+      id,
+      createdAt: new Date()
+    };
+    this.companies.set(id, company);
+    return company;
+  }
+
+  async deleteCompany(userId: string, id: string): Promise<boolean> {
+    const company = this.companies.get(id);
+    if (!company || company.userId !== userId) return false;
+    return this.companies.delete(id);
+  }
+
+  async selectCompany(userId: string, companyId: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    const updated = { ...user, selectedCompanyId: companyId };
+    this.users.set(userId, updated);
+    return updated;
+  }
+
+  async getSelectedCompany(userId: string): Promise<Company | undefined> {
+    const user = this.users.get(userId);
+    if (!user || !user.selectedCompanyId) return undefined;
+    
+    const company = this.companies.get(user.selectedCompanyId);
+    return (company && company.userId === userId) ? company : undefined;
   }
 }
 
@@ -740,6 +806,66 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(templates.id, id), eq(templates.userId, userId)))
       .returning();
     return result.length > 0;
+  }
+
+  // Company methods - with userId filtering
+  async getCompany(userId: string, id: string): Promise<Company | undefined> {
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(and(eq(companies.id, id), eq(companies.userId, userId)));
+    return company || undefined;
+  }
+
+  async getAllCompanies(userId: string): Promise<Company[]> {
+    return await db
+      .select()
+      .from(companies)
+      .where(eq(companies.userId, userId))
+      .orderBy(desc(companies.createdAt));
+  }
+
+  async createCompany(userId: string, insertCompany: InsertCompany): Promise<Company> {
+    const [company] = await db
+      .insert(companies)
+      .values({ ...insertCompany, userId })
+      .returning();
+    return company;
+  }
+
+  async deleteCompany(userId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(companies)
+      .where(and(eq(companies.id, id), eq(companies.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async selectCompany(userId: string, companyId: string): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ selectedCompanyId: companyId })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getSelectedCompany(userId: string): Promise<Company | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user || !user.selectedCompanyId) {
+      return undefined;
+    }
+
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(and(eq(companies.id, user.selectedCompanyId), eq(companies.userId, userId)));
+    
+    return company || undefined;
   }
 }
 

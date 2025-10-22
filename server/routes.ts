@@ -9,6 +9,7 @@ import {
   insertVehicleSchema,
   insertTemplateSchema,
   insertRoleSchema,
+  insertCompanySchema,
   registerUserSchema,
   loginUserSchema
 } from "@shared/schema";
@@ -609,6 +610,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============================================================================
+  // Companies Routes (protected - scoped by userId)
+  // ============================================================================
+  
+  app.get("/api/companies", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const companies = await storage.getAllCompanies(userId);
+      res.json(companies);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/companies", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const result = insertCompanySchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const company = await storage.createCompany(userId, result.data);
+      res.status(201).json(company);
+    } catch (error: any) {
+      // Handle duplicate company errors
+      if (error.message.includes('already exists') || error.message.includes('duplicate') || error.message.includes('unique')) {
+        return res.status(409).json({ message: "A company with this name already exists" });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/companies/:id", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { id } = req.params;
+      const deleted = await storage.deleteCompany(userId, id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/companies/:id/select", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { id } = req.params;
+      
+      // Verify company belongs to user
+      const company = await storage.getCompany(userId, id);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      
+      await storage.selectCompany(userId, id);
+      // Return only the selected company, not the user object
+      res.json(company);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/companies/selected", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const company = await storage.getSelectedCompany(userId);
+      res.json(company || null);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

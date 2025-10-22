@@ -25,9 +25,21 @@ export const users = pgTable("users", {
   isApproved: boolean("is_approved").notNull().default(false),
   requestedAt: timestamp("requested_at").defaultNow().notNull(),
   approvedAt: timestamp("approved_at"),
+  // Selected company for this user
+  selectedCompanyId: varchar("selected_company_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Companies table - Each user can have multiple companies
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userNameUnique: unique("companies_user_name_unique").on(table.userId, table.name),
+}));
 
 // Each user has their own employees
 export const employees = pgTable("employees", {
@@ -138,6 +150,11 @@ export const insertTemplateSchema = createInsertSchema(templates).omit({
   userId: true,
   createdAt: true 
 });
+export const insertCompanySchema = createInsertSchema(companies).omit({ 
+  id: true, 
+  userId: true,
+  createdAt: true 
+});
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
@@ -156,6 +173,9 @@ export type Template = typeof templates.$inferSelect;
 
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type Role = typeof roles.$inferSelect;
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
 
 // Helper type for assignment row data
 export interface AssignmentRowData {

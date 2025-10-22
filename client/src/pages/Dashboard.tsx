@@ -18,8 +18,9 @@ import LoadTemplateDialog from "@/components/LoadTemplateDialog";
 import DepositoSection from "@/components/DepositoSection";
 import AvailableEmployeesPanel from "@/components/AvailableEmployeesPanel";
 import PlanningExportView from "@/components/PlanningExportView";
+import CompanySelector from "@/components/CompanySelector";
 import html2canvas from "html2canvas";
-import type { Vehicle, Employee, EmployeeAbsence, Template, DepositoTimeSlot } from "@shared/schema";
+import type { Vehicle, Employee, EmployeeAbsence, Template, DepositoTimeSlot, Company } from "@shared/schema";
 
 interface AssignmentRow {
   id: string;
@@ -68,6 +69,11 @@ export default function Dashboard() {
       if (!response.ok) throw new Error('Failed to fetch absences');
       return response.json();
     }
+  });
+
+  // Query para obtener la empresa seleccionada
+  const { data: selectedCompany } = useQuery<Company | null>({
+    queryKey: ['/api/companies/selected'],
   });
 
   // Query para obtener todas las plantillas
@@ -852,6 +858,11 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
+          {/* Company Selector */}
+          <div className="flex items-center justify-center">
+            <CompanySelector />
+          </div>
+
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-2xl font-semibold" data-testid="text-dashboard-title">
@@ -1063,6 +1074,7 @@ export default function Dashboard() {
           depositoTimeSlots={depositoTimeSlots}
           depositoComments={depositoComments}
           employees={employees}
+          companyName={selectedCompany?.name}
         />
       </div>
 

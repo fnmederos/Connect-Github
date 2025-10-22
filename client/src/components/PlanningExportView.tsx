@@ -18,6 +18,7 @@ interface PlanningExportViewProps {
   depositoTimeSlots: DepositoTimeSlot[];
   depositoComments: string;
   employees: Employee[];
+  companyName?: string;
 }
 
 export default function PlanningExportView({
@@ -29,6 +30,7 @@ export default function PlanningExportView({
   depositoTimeSlots,
   depositoComments,
   employees,
+  companyName,
 }: PlanningExportViewProps) {
   const getEmployeeName = (employeeId: string) => {
     const employee = employees.find(e => e.id === employeeId);
@@ -115,6 +117,11 @@ export default function PlanningExportView({
     <div className="bg-gray-50 p-6 min-w-[1000px]" data-testid="planning-export-view">
       {/* Encabezado compacto */}
       <div className="mb-4 pb-3 border-b-2 border-black">
+        {companyName && (
+          <div className="text-lg font-semibold text-gray-700 mb-1">
+            {companyName}
+          </div>
+        )}
         <h1 className="text-2xl font-bold text-black mb-1">
           Planificación Diaria - {format(date, "dd/MM/yyyy", { locale: es })}
         </h1>
