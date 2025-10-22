@@ -703,6 +703,9 @@ export default function Dashboard() {
 
   // Función para cargar plantilla
   const handleLoadTemplate = (template: Template) => {
+    // Limpiar el estado persistido para que no se restaure al volver al dashboard
+    clearState();
+    
     setSelectedVehicleIds(template.vehicleIds);
     
     // Parsear los datos de asignación
