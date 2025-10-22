@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useDashboardPersistence } from "@/hooks/useDashboardPersistence";
 import AssignmentCard from "@/components/AssignmentCard";
 import VehicleSelectionDialog from "@/components/VehicleSelectionDialog";
 import SaveTemplateDialog from "@/components/SaveTemplateDialog";
@@ -39,8 +40,10 @@ export default function Dashboard() {
   const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
   const [isAvailablePanelOpen, setIsAvailablePanelOpen] = useState(false);
+  const [isStateRestored, setIsStateRestored] = useState(false);
   const exportViewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { saveState, loadState, clearState } = useDashboardPersistence();
 
   // Fetch employees from API
   const { data: employees = [] } = useQuery<Employee[]>({
@@ -243,6 +246,69 @@ export default function Dashboard() {
       return cleanedCount > 0 ? updated : prev;
     });
   }, [availableEmployees]);
+
+  // Efecto para restaurar estado al montar el componente
+  useEffect(() => {
+    const savedState = loadState();
+    if (savedState && !isStateRestored) {
+      setSelectedDate(new Date(savedState.selectedDate));
+      setSelectedVehicleIds(savedState.selectedVehicleIds);
+      setVehicleAssignments(savedState.assignmentRows);
+      setVehicleComments(savedState.vehicleComments);
+      setVehicleLoadingStatus(savedState.loadingStatuses);
+      
+      // Restaurar depósito - convertir del formato guardado al formato del componente
+      const depositoEntries = Object.entries(savedState.depotAssignments);
+      if (depositoEntries.length > 0) {
+        const slots: DepositoTimeSlot[] = depositoEntries.map(([slotId, data]) => {
+          const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+          return {
+            id: slotId,
+            timeSlot: parsed.timeSlot || slotId,
+            employees: parsed.employees || []
+          };
+        });
+        setDepositoTimeSlots(slots);
+      }
+      
+      setIsStateRestored(true);
+    }
+  }, [loadState, isStateRestored]);
+
+  // Efecto para guardar estado automáticamente cuando cambia
+  useEffect(() => {
+    // Solo guardar si el estado ya fue restaurado (evitar guardar estado vacío inicial)
+    if (!isStateRestored) return;
+
+    const depotAssignments: Record<string, any> = {};
+    depositoTimeSlots.forEach(slot => {
+      depotAssignments[slot.id] = {
+        timeSlot: slot.timeSlot,
+        employees: slot.employees
+      };
+    });
+
+    const state = {
+      selectedDate: selectedDate.toISOString(),
+      selectedVehicleIds,
+      assignmentRows: vehicleAssignments,
+      vehicleComments,
+      loadingStatuses: vehicleLoadingStatus,
+      depotAssignments,
+      depotSupervisor: ''
+    };
+
+    saveState(state);
+  }, [
+    selectedDate,
+    selectedVehicleIds,
+    vehicleAssignments,
+    vehicleComments,
+    vehicleLoadingStatus,
+    depositoTimeSlots,
+    isStateRestored,
+    saveState
+  ]);
 
   // Calcular vehículos seleccionados basado en IDs
   const selectedVehicles = useMemo(() => {
@@ -530,6 +596,7 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/daily-assignments'] });
+      clearState(); // Limpiar estado persistido después de guardar exitosamente
       toast({
         title: "Planificación guardada",
         description: `La planificación para ${format(selectedDate, "PPP", { locale: es })} se guardó correctamente.`,
