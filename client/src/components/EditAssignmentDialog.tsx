@@ -20,8 +20,7 @@ import {
 import { Plus, X, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import DepositoSection from "@/components/DepositoSection";
-import type { DailyAssignment, Employee, AssignmentRowData, DepositoTimeSlot, EmployeeAbsence } from "@shared/schema";
+import type { DailyAssignment, Employee, AssignmentRowData, EmployeeAbsence } from "@shared/schema";
 
 interface EditAssignmentDialogProps {
   assignmentId: string;
@@ -60,8 +59,6 @@ export default function EditAssignmentDialog({
   const [assignmentRows, setAssignmentRows] = useState<AssignmentRowData[]>([]);
   const [comments, setComments] = useState('');
   const [loadingStatus, setLoadingStatus] = useState('');
-  const [depositoTimeSlots, setDepositoTimeSlots] = useState<DepositoTimeSlot[]>([]);
-  const [depositoComments, setDepositoComments] = useState('');
 
   // Función para verificar si un empleado está disponible en una fecha
   const isEmployeeAvailable = (employeeId: string, dateStr: string): boolean => {
@@ -91,13 +88,6 @@ export default function EditAssignmentDialog({
         setAssignmentRows(rows);
         setComments(assignment.comments || '');
         setLoadingStatus(assignment.loadingStatus || '');
-        
-        // Cargar datos de depósito
-        const depotSlots = assignment.depositoAssignments 
-          ? JSON.parse(assignment.depositoAssignments) as DepositoTimeSlot[]
-          : [];
-        setDepositoTimeSlots(depotSlots);
-        setDepositoComments(assignment.depositoComments || '');
       } catch (error) {
         console.error('Error parsing assignment data:', error);
       }
@@ -145,8 +135,6 @@ export default function EditAssignmentDialog({
         assignmentRows: JSON.stringify(assignmentRows),
         comments,
         loadingStatus,
-        depositoAssignments: JSON.stringify(depositoTimeSlots),
-        depositoComments,
       };
 
       const response = await fetch(`/api/daily-assignments/${assignmentId}`, {
@@ -216,86 +204,6 @@ export default function EditAssignmentDialog({
     setAssignmentRows(updated);
   };
 
-  // Handlers para depósito
-  const handleAddDepositoTimeSlot = () => {
-    setDepositoTimeSlots(prev => [...prev, {
-      id: `deposito-${Date.now()}`,
-      timeSlot: '',
-      employees: []
-    }]);
-  };
-
-  const handleRemoveDepositoTimeSlot = (slotId: string) => {
-    setDepositoTimeSlots(prev => prev.filter(slot => slot.id !== slotId));
-  };
-
-  const handleUpdateDepositoTimeSlot = (slotId: string, timeSlot: string) => {
-    setDepositoTimeSlots(prev => prev.map(slot => 
-      slot.id === slotId ? { ...slot, timeSlot } : slot
-    ));
-  };
-
-  const handleAddDepositoEmployee = (slotId: string) => {
-    setDepositoTimeSlots(prev => prev.map(slot => {
-      if (slot.id === slotId) {
-        return {
-          ...slot,
-          employees: [...slot.employees, { employeeId: '', employeeName: '', isEncargado: false }]
-        };
-      }
-      return slot;
-    }));
-  };
-
-  const handleRemoveDepositoEmployee = (slotId: string, employeeIndex: number) => {
-    setDepositoTimeSlots(prev => prev.map(slot => {
-      if (slot.id === slotId) {
-        return {
-          ...slot,
-          employees: slot.employees.filter((_, i) => i !== employeeIndex)
-        };
-      }
-      return slot;
-    }));
-  };
-
-  const handleUpdateDepositoEmployee = (slotId: string, employeeIndex: number, employeeId: string) => {
-    setDepositoTimeSlots(prev => prev.map(slot => {
-      if (slot.id === slotId) {
-        const employee = employees.find(e => e.id === employeeId);
-        return {
-          ...slot,
-          employees: slot.employees.map((emp, i) => 
-            i === employeeIndex 
-              ? { ...emp, employeeId, employeeName: employee?.name || '' }
-              : emp
-          )
-        };
-      }
-      return slot;
-    }));
-  };
-
-  const handleToggleDepositoEncargado = (slotId: string, employeeIndex: number) => {
-    setDepositoTimeSlots(prev => prev.map(slot => {
-      if (slot.id === slotId) {
-        return {
-          ...slot,
-          employees: slot.employees.map((emp, i) => {
-            if (i === employeeIndex) {
-              return { ...emp, isEncargado: !emp.isEncargado };
-            }
-            // Si estamos activando encargado en este empleado, desactivar otros en el mismo slot
-            if (slot.employees[employeeIndex].isEncargado === false) {
-              return { ...emp, isEncargado: false };
-            }
-            return emp;
-          })
-        };
-      }
-      return slot;
-    }));
-  };
 
   // Calcular empleados ya asignados (para evitar duplicados)
   const allAssignedEmployeeIds = useMemo(() => {
@@ -311,20 +219,8 @@ export default function EditAssignmentDialog({
       }
     });
     
-    // Empleados asignados en depósito
-    depositoTimeSlots.forEach(slot => {
-      slot.employees.forEach(emp => {
-        if (emp.employeeId) {
-          const employee = employees.find(e => e.id === emp.employeeId);
-          if (employee && !employee.allowDuplicates) {
-            assigned.add(emp.employeeId);
-          }
-        }
-      });
-    });
-    
     return assigned;
-  }, [assignmentRows, depositoTimeSlots, employees]);
+  }, [assignmentRows, employees]);
 
   if (!assignment) {
     return null;
@@ -472,24 +368,6 @@ export default function EditAssignmentDialog({
               placeholder="Notas adicionales sobre esta asignación..."
               rows={3}
               data-testid="textarea-comments"
-            />
-          </div>
-
-          {/* Sección de Depósito */}
-          <div>
-            <DepositoSection
-              timeSlots={depositoTimeSlots}
-              availableEmployees={availableEmployees}
-              allAssignedEmployeeIds={allAssignedEmployeeIds}
-              comments={depositoComments}
-              onAddTimeSlot={handleAddDepositoTimeSlot}
-              onRemoveTimeSlot={handleRemoveDepositoTimeSlot}
-              onUpdateTimeSlot={handleUpdateDepositoTimeSlot}
-              onAddEmployee={handleAddDepositoEmployee}
-              onRemoveEmployee={handleRemoveDepositoEmployee}
-              onUpdateEmployee={handleUpdateDepositoEmployee}
-              onToggleEncargado={handleToggleDepositoEncargado}
-              onUpdateComments={setDepositoComments}
             />
           </div>
         </div>
