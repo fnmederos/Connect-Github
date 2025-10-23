@@ -75,6 +75,7 @@ export interface IStorage {
   getAllDailyAssignments(userId: string): Promise<DailyAssignment[]>;
   getDailyAssignmentsByDate(userId: string, date: string): Promise<DailyAssignment[]>;
   createDailyAssignment(userId: string, assignment: InsertDailyAssignment): Promise<DailyAssignment>;
+  updateDailyAssignment(userId: string, id: string, assignment: Partial<InsertDailyAssignment>): Promise<DailyAssignment | undefined>;
   deleteDailyAssignment(userId: string, id: string): Promise<boolean>;
   deleteDailyAssignmentsByDate(userId: string, date: string): Promise<number>;
 
@@ -388,6 +389,15 @@ export class MemStorage implements IStorage {
     };
     this.dailyAssignments.set(id, assignment);
     return assignment;
+  }
+
+  async updateDailyAssignment(userId: string, id: string, assignmentData: Partial<InsertDailyAssignment>): Promise<DailyAssignment | undefined> {
+    const assignment = this.dailyAssignments.get(id);
+    if (!assignment || assignment.userId !== userId) return undefined;
+    
+    const updated = { ...assignment, ...assignmentData };
+    this.dailyAssignments.set(id, updated);
+    return updated;
   }
 
   async deleteDailyAssignment(userId: string, id: string): Promise<boolean> {
@@ -757,6 +767,15 @@ export class DatabaseStorage implements IStorage {
       .values({ ...insertAssignment, userId })
       .returning();
     return assignment;
+  }
+
+  async updateDailyAssignment(userId: string, id: string, assignmentData: Partial<InsertDailyAssignment>): Promise<DailyAssignment | undefined> {
+    const [updated] = await db
+      .update(dailyAssignments)
+      .set(assignmentData)
+      .where(and(eq(dailyAssignments.id, id), eq(dailyAssignments.userId, userId)))
+      .returning();
+    return updated || undefined;
   }
 
   async deleteDailyAssignment(userId: string, id: string): Promise<boolean> {

@@ -483,6 +483,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/daily-assignments/:id", isApproved, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { id } = req.params;
+      
+      // Validate that assignment exists and belongs to user
+      const existing = await storage.getDailyAssignment(userId, id);
+      if (!existing) {
+        return res.status(404).json({ message: "Daily assignment not found" });
+      }
+      
+      const result = insertDailyAssignmentSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        return res.status(400).json({ message: errorMessage });
+      }
+
+      const updated = await storage.updateDailyAssignment(userId, id, result.data);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.delete("/api/daily-assignments/:id", isApproved, async (req, res) => {
     try {
       const userId = req.session.userId!;
