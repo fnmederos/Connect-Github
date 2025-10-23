@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import ExportExcelDialog from "@/components/ExportExcelDialog";
 import EditAssignmentDialog from "@/components/EditAssignmentDialog";
+import EditDepositoDialog from "@/components/EditDepositoDialog";
 
 export default function History() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function History() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
+  const [editDepositoAssignmentId, setEditDepositoAssignmentId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch all daily assignments
@@ -281,7 +283,18 @@ export default function History() {
               return (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">DEPOSITO</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">DEPOSITO</CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditDepositoAssignmentId(assignmentWithDeposito.id)}
+                        data-testid="button-edit-deposito"
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -375,11 +388,19 @@ export default function History() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de edición */}
+      {/* Dialog de edición de vehículo */}
       {editAssignmentId && (
         <EditAssignmentDialog
           assignmentId={editAssignmentId}
           onClose={() => setEditAssignmentId(null)}
+        />
+      )}
+
+      {/* Dialog de edición de depósito */}
+      {editDepositoAssignmentId && (
+        <EditDepositoDialog
+          assignmentId={editDepositoAssignmentId}
+          onClose={() => setEditDepositoAssignmentId(null)}
         />
       )}
     </div>
