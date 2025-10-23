@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Calendar as CalendarIcon, Download, Trash2 } from "lucide-react";
+import { ChevronRight, Calendar as CalendarIcon, Download, Trash2, Edit } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DailyAssignment, AssignmentRowData, DepositoTimeSlot } from "@shared/schema";
@@ -23,14 +23,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import ExportExcelDialog from "@/components/ExportExcelDialog";
+import EditAssignmentDialog from "@/components/EditAssignmentDialog";
 
 export default function History() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch all daily assignments
@@ -188,12 +190,28 @@ export default function History() {
               return (
                 <Card key={assignment.id}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      {assignment.vehicleName}
-                    </CardTitle>
-                    <CardDescription>
-                      Patente: {assignment.vehicleLicensePlate}
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">
+                          {assignment.vehicleName}
+                        </CardTitle>
+                        <CardDescription>
+                          Patente: {assignment.vehicleLicensePlate}
+                          {assignment.loadingStatus && (
+                            <span className="ml-2 text-xs">• {assignment.loadingStatus}</span>
+                          )}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditAssignmentId(assignment.id)}
+                        data-testid={`button-edit-assignment-${assignment.id}`}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
@@ -216,6 +234,11 @@ export default function History() {
                           </div>
                         </div>
                       ))}
+                      {assignment.comments && assignment.comments.trim().length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{assignment.comments}</p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -351,6 +374,14 @@ export default function History() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de edición */}
+      {editAssignmentId && (
+        <EditAssignmentDialog
+          assignmentId={editAssignmentId}
+          onClose={() => setEditAssignmentId(null)}
+        />
+      )}
     </div>
   );
 }
