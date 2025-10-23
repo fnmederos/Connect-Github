@@ -79,10 +79,33 @@ export default function EditAssignmentDialog({
     })),
   ];
 
+  // Validar antes de guardar
+  const validateAssignmentRows = (): string | null => {
+    for (let i = 0; i < assignmentRows.length; i++) {
+      const row = assignmentRows[i];
+      if (!row.employeeId || !row.employeeName) {
+        return `La fila ${i + 1} debe tener un empleado asignado`;
+      }
+      if (!row.role) {
+        return `La fila ${i + 1} debe tener un rol asignado`;
+      }
+      if (!row.time || row.time.trim() === '') {
+        return `La fila ${i + 1} debe tener un horario asignado`;
+      }
+    }
+    return null;
+  };
+
   // Mutación para guardar cambios
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!assignment) throw new Error("Assignment not found");
+
+      // Validar antes de enviar
+      const validationError = validateAssignmentRows();
+      if (validationError) {
+        throw new Error(validationError);
+      }
 
       const updatedData = {
         assignmentRows: JSON.stringify(assignmentRows),
@@ -209,60 +232,80 @@ export default function EditAssignmentDialog({
             </div>
 
             <div className="space-y-2">
-              {assignmentRows.map((row, index) => (
-                <div key={index} className="flex gap-2 items-start p-2 border rounded-md">
-                  <div className="flex-1 grid grid-cols-3 gap-2">
-                    <Select
-                      value={row.employeeId}
-                      onValueChange={(value) => handleUpdateRow(index, 'employeeId', value)}
-                    >
-                      <SelectTrigger data-testid={`select-employee-${index}`}>
-                        <SelectValue placeholder="Empleado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              {assignmentRows.map((row, index) => {
+                const hasEmployeeError = !row.employeeId || !row.employeeName;
+                const hasRoleError = !row.role;
+                const hasTimeError = !row.time || row.time.trim() === '';
+                const hasError = hasEmployeeError || hasRoleError || hasTimeError;
+                
+                return (
+                  <div key={index} className={`flex gap-2 items-start p-2 border rounded-md ${hasError ? 'border-destructive' : ''}`}>
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      <div>
+                        <Select
+                          value={row.employeeId}
+                          onValueChange={(value) => handleUpdateRow(index, 'employeeId', value)}
+                        >
+                          <SelectTrigger 
+                            data-testid={`select-employee-${index}`}
+                            className={hasEmployeeError ? 'border-destructive' : ''}
+                          >
+                            <SelectValue placeholder="Empleado *" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees.map((emp) => (
+                              <SelectItem key={emp.id} value={emp.id}>
+                                {emp.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <Select
-                      value={row.role}
-                      onValueChange={(value) => handleUpdateRow(index, 'role', value)}
-                    >
-                      <SelectTrigger data-testid={`select-role-${index}`}>
-                        <SelectValue placeholder="Rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {role}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <div>
+                        <Select
+                          value={row.role}
+                          onValueChange={(value) => handleUpdateRow(index, 'role', value)}
+                        >
+                          <SelectTrigger 
+                            data-testid={`select-role-${index}`}
+                            className={hasRoleError ? 'border-destructive' : ''}
+                          >
+                            <SelectValue placeholder="Rol *" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map((role) => (
+                              <SelectItem key={role} value={role}>
+                                {role}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <Input
-                      placeholder="Horario (ej: 08:00)"
-                      value={row.time}
-                      onChange={(e) => handleUpdateRow(index, 'time', e.target.value)}
-                      data-testid={`input-time-${index}`}
-                    />
+                      <div>
+                        <Input
+                          placeholder="Horario (ej: 08:00) *"
+                          value={row.time}
+                          onChange={(e) => handleUpdateRow(index, 'time', e.target.value)}
+                          data-testid={`input-time-${index}`}
+                          className={hasTimeError ? 'border-destructive' : ''}
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={() => handleRemoveRow(index)}
+                      size="icon"
+                      variant="ghost"
+                      className="flex-shrink-0"
+                      data-testid={`button-remove-row-${index}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  
-                  <Button
-                    onClick={() => handleRemoveRow(index)}
-                    size="icon"
-                    variant="ghost"
-                    className="flex-shrink-0"
-                    data-testid={`button-remove-row-${index}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
 
               {assignmentRows.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">

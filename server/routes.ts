@@ -494,11 +494,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Daily assignment not found" });
       }
       
+      // Validate the update data
       const result = insertDailyAssignmentSchema.partial().safeParse(req.body);
       
       if (!result.success) {
         const errorMessage = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         return res.status(400).json({ message: errorMessage });
+      }
+
+      // Additional validation for assignmentRows if provided
+      if (result.data.assignmentRows) {
+        try {
+          const rows = JSON.parse(result.data.assignmentRows);
+          
+          // Validate each row has required fields
+          if (!Array.isArray(rows)) {
+            return res.status(400).json({ message: "assignmentRows must be a valid JSON array" });
+          }
+          
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row.employeeId || !row.employeeName || !row.role || !row.time) {
+              return res.status(400).json({ 
+                message: `Invalid assignment row at index ${i}: all fields (employeeId, employeeName, role, time) are required` 
+              });
+            }
+          }
+        } catch (parseError) {
+          return res.status(400).json({ message: "assignmentRows must be valid JSON" });
+        }
       }
 
       const updated = await storage.updateDailyAssignment(userId, id, result.data);
