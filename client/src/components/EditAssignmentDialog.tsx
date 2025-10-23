@@ -71,7 +71,6 @@ export default function EditAssignmentDialog({
 
   // Opciones de estado de carga
   const loadingStatusOptions = [
-    { value: "", label: "Sin asignar" },
     { value: "CARGADO", label: "CARGADO" },
     ...Array.from({ length: 15 }, (_, i) => ({
       value: `${i + 1}° EN CARGAR`,
@@ -202,7 +201,7 @@ export default function EditAssignmentDialog({
             <label className="text-sm font-medium mb-1.5 block">
               Estado de Carga
             </label>
-            <Select value={loadingStatus} onValueChange={setLoadingStatus}>
+            <Select value={loadingStatus || undefined} onValueChange={setLoadingStatus}>
               <SelectTrigger data-testid="select-loading-status">
                 <SelectValue placeholder="Seleccionar estado" />
               </SelectTrigger>
@@ -243,7 +242,7 @@ export default function EditAssignmentDialog({
                     <div className="flex-1 grid grid-cols-3 gap-2">
                       <div>
                         <Select
-                          value={row.employeeId}
+                          value={row.employeeId || undefined}
                           onValueChange={(value) => handleUpdateRow(index, 'employeeId', value)}
                         >
                           <SelectTrigger 
@@ -253,7 +252,7 @@ export default function EditAssignmentDialog({
                             <SelectValue placeholder="Empleado *" />
                           </SelectTrigger>
                           <SelectContent>
-                            {employees.map((emp) => (
+                            {employees.filter(emp => emp.id && emp.id.trim() !== '').map((emp) => (
                               <SelectItem key={emp.id} value={emp.id}>
                                 {emp.name}
                               </SelectItem>
@@ -264,7 +263,7 @@ export default function EditAssignmentDialog({
 
                       <div>
                         <Select
-                          value={row.role}
+                          value={row.role || undefined}
                           onValueChange={(value) => handleUpdateRow(index, 'role', value)}
                         >
                           <SelectTrigger 
@@ -274,7 +273,7 @@ export default function EditAssignmentDialog({
                             <SelectValue placeholder="Rol *" />
                           </SelectTrigger>
                           <SelectContent>
-                            {roles.map((role) => (
+                            {roles.filter(role => role && role.trim() !== '').map((role) => (
                               <SelectItem key={role} value={role}>
                                 {role}
                               </SelectItem>
