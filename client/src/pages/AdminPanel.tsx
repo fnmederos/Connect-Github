@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -6,14 +7,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle, XCircle, ArrowLeft, Shield } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle, XCircle, ArrowLeft, Shield, Key } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { User } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AdminPanel() {
   const { toast } = useToast();
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
@@ -58,6 +70,32 @@ export default function AdminPanel() {
       });
     },
   });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      return await apiRequest('POST', `/api/admin/reset-password/${userId}`, { password });
+    },
+    onSuccess: () => {
+      setResetPasswordUserId(null);
+      setNewPassword("");
+      toast({
+        title: "Contraseña cambiada",
+        description: "La contraseña se cambió exitosamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `No se pudo cambiar la contraseña: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleResetPassword = () => {
+    if (!resetPasswordUserId || !newPassword) return;
+    resetPasswordMutation.mutate({ userId: resetPasswordUserId, password: newPassword });
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -129,35 +167,44 @@ export default function AdminPanel() {
                         {format(new Date(user.requestedAt), "PPP", { locale: es })}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!user.isApproved && (
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="gap-1 bg-green-600 hover:bg-green-700"
-                              onClick={() => approveMutation.mutate(user.id)}
-                              disabled={approveMutation.isPending}
-                              data-testid={`button-approve-${user.id}`}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Aprobar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="gap-1"
-                              onClick={() => rejectMutation.mutate(user.id)}
-                              disabled={rejectMutation.isPending}
-                              data-testid={`button-reject-${user.id}`}
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Rechazar
-                            </Button>
-                          </div>
-                        )}
-                        {user.isApproved && (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
+                        <div className="flex gap-2 justify-end">
+                          {!user.isApproved && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="gap-1 bg-green-600 hover:bg-green-700"
+                                onClick={() => approveMutation.mutate(user.id)}
+                                disabled={approveMutation.isPending}
+                                data-testid={`button-approve-${user.id}`}
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Aprobar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="gap-1"
+                                onClick={() => rejectMutation.mutate(user.id)}
+                                disabled={rejectMutation.isPending}
+                                data-testid={`button-reject-${user.id}`}
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Rechazar
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setResetPasswordUserId(user.id)}
+                            data-testid={`button-reset-password-${user.id}`}
+                          >
+                            <Key className="w-4 h-4" />
+                            Cambiar Contraseña
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -167,6 +214,57 @@ export default function AdminPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog para cambiar contraseña */}
+      <Dialog open={resetPasswordUserId !== null} onOpenChange={(open) => {
+        if (!open) {
+          setResetPasswordUserId(null);
+          setNewPassword("");
+        }
+      }}>
+        <DialogContent data-testid="dialog-reset-password">
+          <DialogHeader>
+            <DialogTitle>Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Ingresa una nueva contraseña para el usuario {users.find(u => u.id === resetPasswordUserId)?.username}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              type="password"
+              placeholder="Nueva contraseña"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleResetPassword();
+                }
+              }}
+              data-testid="input-new-password"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResetPasswordUserId(null);
+                setNewPassword("");
+              }}
+              disabled={resetPasswordMutation.isPending}
+              data-testid="button-cancel-reset-password"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={resetPasswordMutation.isPending || !newPassword}
+              data-testid="button-confirm-reset-password"
+            >
+              {resetPasswordMutation.isPending ? "Cambiando..." : "Cambiar Contraseña"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
