@@ -36,6 +36,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   updateUserApproval(id: string, isApproved: boolean): Promise<User | undefined>;
+  updateUserPassword(id: string, passwordHash: string): Promise<User | undefined>;
   shouldPromoteToFirstAdmin(userId: string): Promise<boolean>;
 
   // Employee methods - scoped by userId
@@ -157,6 +158,19 @@ export class MemStorage implements IStorage {
       ...user,
       isApproved,
       approvedAt: isApproved ? new Date() : null,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async updateUserPassword(id: string, passwordHash: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updated: User = {
+      ...user,
+      passwordHash,
       updatedAt: new Date(),
     };
     this.users.set(id, updated);
@@ -541,6 +555,18 @@ export class DatabaseStorage implements IStorage {
       .set({ 
         isApproved, 
         approvedAt: isApproved ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateUserPassword(id: string, passwordHash: string): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        passwordHash,
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))

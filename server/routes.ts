@@ -199,6 +199,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/reset-password/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+
+      if (!password || typeof password !== 'string' || password.length < 1) {
+        return res.status(400).json({ message: "Password is required" });
+      }
+
+      // Hash the new password
+      const passwordHash = await hashPassword(password);
+
+      // Update user password
+      const user = await storage.updateUserPassword(id, passwordHash);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ============================================================================
   // Employee Routes (protected - scoped by userId)
   // ============================================================================
