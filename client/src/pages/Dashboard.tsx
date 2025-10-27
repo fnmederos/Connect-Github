@@ -39,7 +39,7 @@ export default function Dashboard() {
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
   const [isAvailablePanelOpen, setIsAvailablePanelOpen] = useState(false);
   const exportViewRef = useRef<HTMLDivElement>(null);
-  const loadedDateRef = useRef<string>("");
+  const [hasLoadedFromDB, setHasLoadedFromDB] = useState(false);
   const { toast } = useToast();
 
   // Fetch employees from API
@@ -83,18 +83,10 @@ export default function Dashboard() {
     }
   });
 
-  // Efecto para cargar las asignaciones guardadas cuando cambia la fecha
+  // Efecto para cargar las asignaciones guardadas desde la BD cuando están disponibles
   useEffect(() => {
-    const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
-    
-    // Solo cargar si la fecha cambió (evitar bucles infinitos)
-    if (loadedDateRef.current === currentDateStr) {
-      return;
-    }
-    
-    loadedDateRef.current = currentDateStr;
-    
     if (dailyAssignments && dailyAssignments.length > 0) {
+      // Hay asignaciones guardadas en la BD - usarlas (tienen prioridad)
       const vehicleIds: string[] = [];
       const assignments: Record<string, AssignmentRow[]> = {};
       const comments: Record<string, string> = {};
@@ -136,15 +128,60 @@ export default function Dashboard() {
       setVehicleComments(comments);
       setDepositoTimeSlots(loadedDepositoSlots);
       setDepositoComments(loadedDepositoComments);
-    } else {
-      // Si no hay asignaciones guardadas, limpiar todo
-      setSelectedVehicleIds([]);
-      setVehicleAssignments({});
-      setVehicleComments({});
-      setDepositoTimeSlots([]);
-      setDepositoComments('');
+      setHasLoadedFromDB(true);
+      
+      // Limpiar localStorage después de cargar de la BD
+      const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
+      localStorage.removeItem(`dashboard-cache-${currentDateStr}`);
     }
-  }, [dailyAssignments, selectedDate]);
+  }, [dailyAssignments]);
+
+  // Efecto para cargar desde localStorage cuando no hay datos en la BD
+  useEffect(() => {
+    const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
+    
+    // Solo cargar de localStorage si no hemos cargado de la BD y es la primera carga
+    if (!hasLoadedFromDB && dailyAssignments !== undefined && dailyAssignments.length === 0) {
+      try {
+        const cached = localStorage.getItem(`dashboard-cache-${currentDateStr}`);
+        if (cached) {
+          const data = JSON.parse(cached);
+          setSelectedVehicleIds(data.selectedVehicleIds || []);
+          setVehicleAssignments(data.vehicleAssignments || {});
+          setVehicleComments(data.vehicleComments || {});
+          setDepositoTimeSlots(data.depositoTimeSlots || []);
+          setDepositoComments(data.depositoComments || '');
+        }
+      } catch (e) {
+        // Error al parsear localStorage - ignorar
+      }
+    }
+  }, [dailyAssignments, selectedDate, hasLoadedFromDB]);
+
+  // Efecto para resetear el flag cuando cambia la fecha
+  useEffect(() => {
+    setHasLoadedFromDB(false);
+  }, [selectedDate]);
+
+  // Efecto para guardar automáticamente en localStorage (caché temporal)
+  // Solo si NO hemos cargado de la BD (para evitar sobrescribir)
+  useEffect(() => {
+    if (!hasLoadedFromDB) {
+      const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
+      const data = {
+        selectedVehicleIds,
+        vehicleAssignments,
+        vehicleComments,
+        depositoTimeSlots,
+        depositoComments,
+      };
+      
+      // Solo guardar si hay algo que guardar
+      if (selectedVehicleIds.length > 0 || depositoTimeSlots.length > 0) {
+        localStorage.setItem(`dashboard-cache-${currentDateStr}`, JSON.stringify(data));
+      }
+    }
+  }, [hasLoadedFromDB, selectedDate, selectedVehicleIds, vehicleAssignments, vehicleComments, depositoTimeSlots, depositoComments]);
 
   // Función para verificar si un empleado está disponible en una fecha
   const isEmployeeAvailable = (employeeId: string, date: Date): boolean => {
