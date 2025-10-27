@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
   const [isAvailablePanelOpen, setIsAvailablePanelOpen] = useState(false);
   const exportViewRef = useRef<HTMLDivElement>(null);
+  const loadedDateRef = useRef<string>("");
   const { toast } = useToast();
 
   // Fetch employees from API
@@ -70,6 +71,80 @@ export default function Dashboard() {
   const { data: templates = [] } = useQuery<Template[]>({
     queryKey: ['/api/templates'],
   });
+
+  // Query para obtener las asignaciones diarias del día seleccionado
+  const { data: dailyAssignments = [] } = useQuery({
+    queryKey: ['/api/daily-assignments', format(selectedDate, 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const response = await fetch(`/api/daily-assignments?date=${dateStr}`);
+      if (!response.ok) throw new Error('Failed to fetch daily assignments');
+      return response.json();
+    }
+  });
+
+  // Efecto para cargar las asignaciones guardadas cuando cambia la fecha
+  useEffect(() => {
+    const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
+    
+    // Solo cargar si la fecha cambió (evitar bucles infinitos)
+    if (loadedDateRef.current === currentDateStr) {
+      return;
+    }
+    
+    loadedDateRef.current = currentDateStr;
+    
+    if (dailyAssignments && dailyAssignments.length > 0) {
+      const vehicleIds: string[] = [];
+      const assignments: Record<string, AssignmentRow[]> = {};
+      const comments: Record<string, string> = {};
+      let loadedDepositoSlots: DepositoTimeSlot[] = [];
+      let loadedDepositoComments = "";
+      
+      dailyAssignments.forEach((assignment: any, index: number) => {
+        if (assignment.vehicleId && assignment.vehicleId !== 'DEPOSITO') {
+          vehicleIds.push(assignment.vehicleId);
+          
+          try {
+            const rows = JSON.parse(assignment.assignmentRows || '[]');
+            assignments[assignment.vehicleId] = rows.map((row: any, idx: number) => ({
+              id: `${assignment.vehicleId}-loaded-${index}-${idx}`,
+              role: row.role || '',
+              employeeId: row.employeeId || '',
+              time: row.time || '08:00',
+            }));
+          } catch (e) {
+            assignments[assignment.vehicleId] = [];
+          }
+          
+          comments[assignment.vehicleId] = assignment.comments || '';
+        }
+        
+        // Cargar datos de depósito (solo una vez, del primer assignment)
+        if (index === 0 && assignment.depositoAssignments) {
+          try {
+            loadedDepositoSlots = JSON.parse(assignment.depositoAssignments);
+          } catch (e) {
+            loadedDepositoSlots = [];
+          }
+          loadedDepositoComments = assignment.depositoComments || '';
+        }
+      });
+      
+      setSelectedVehicleIds(vehicleIds);
+      setVehicleAssignments(assignments);
+      setVehicleComments(comments);
+      setDepositoTimeSlots(loadedDepositoSlots);
+      setDepositoComments(loadedDepositoComments);
+    } else {
+      // Si no hay asignaciones guardadas, limpiar todo
+      setSelectedVehicleIds([]);
+      setVehicleAssignments({});
+      setVehicleComments({});
+      setDepositoTimeSlots([]);
+      setDepositoComments('');
+    }
+  }, [dailyAssignments, selectedDate]);
 
   // Función para verificar si un empleado está disponible en una fecha
   const isEmployeeAvailable = (employeeId: string, date: Date): boolean => {
