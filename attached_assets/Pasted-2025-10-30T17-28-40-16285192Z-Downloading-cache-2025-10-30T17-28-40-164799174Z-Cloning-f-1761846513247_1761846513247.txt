@@ -1,0 +1,111 @@
+2025-10-30T17:28:40.16285192Z ==> Downloading cache...
+2025-10-30T17:28:40.164799174Z ==> Cloning from https://github.com/fnmederos/Horarios-Personal
+2025-10-30T17:28:40.656791715Z ==> Checking out commit d011e70b1a67b784022cd5262fc1908a32a98965 in branch main
+2025-10-30T17:28:54.235992858Z ==> Transferred 214MB in 7s. Extraction took 5s.
+2025-10-30T17:28:56.304518824Z ==> Using Node.js version 22.16.0 (default)
+2025-10-30T17:28:56.328885684Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-10-30T17:28:56.438632611Z ==> Running build command 'npm install; npm run db:push -- --force; npm run build'...
+2025-10-30T17:28:57.834349629Z 
+2025-10-30T17:28:57.834375471Z added 5 packages, and audited 485 packages in 1s
+2025-10-30T17:28:57.834401653Z 
+2025-10-30T17:28:57.834413914Z 63 packages are looking for funding
+2025-10-30T17:28:57.834476698Z   run `npm fund` for details
+2025-10-30T17:28:57.852464898Z 
+2025-10-30T17:28:57.85248277Z 9 vulnerabilities (3 low, 5 moderate, 1 high)
+2025-10-30T17:28:57.85248562Z 
+2025-10-30T17:28:57.8524889Z To address issues that do not require attention, run:
+2025-10-30T17:28:57.85249129Z   npm audit fix
+2025-10-30T17:28:57.85249333Z 
+2025-10-30T17:28:57.852496491Z To address all issues possible (including breaking changes), run:
+2025-10-30T17:28:57.852499431Z   npm audit fix --force
+2025-10-30T17:28:57.852501401Z 
+2025-10-30T17:28:57.852503531Z Some issues need review, and may require choosing
+2025-10-30T17:28:57.852505761Z a different dependency.
+2025-10-30T17:28:57.852507741Z 
+2025-10-30T17:28:57.852510372Z Run `npm audit` for details.
+2025-10-30T17:28:57.997019685Z 
+2025-10-30T17:28:57.997036846Z > rest-express@1.0.0 db:push
+2025-10-30T17:28:57.997039766Z > drizzle-kit push --force
+2025-10-30T17:28:57.997041836Z 
+2025-10-30T17:28:58.124034152Z No config path provided, using default 'drizzle.config.ts'
+2025-10-30T17:28:58.124269388Z Reading config file '/opt/render/project/src/drizzle.config.ts'
+2025-10-30T17:28:58.691042805Z Using 'pg' driver for database querying
+2025-10-30T17:28:58.880788917Z [⣷] Pulling schema from database...
+2025-10-30T17:28:59.002865804Z [⣯] Pulling schema from database...
+2025-10-30T17:28:59.13030899Z [⣟] Pulling schema from database...
+2025-10-30T17:28:59.258612076Z [⡿] Pulling schema from database...
+2025-10-30T17:28:59.38630977Z [⢿] Pulling schema from database...
+2025-10-30T17:28:59.514320086Z [⣻] Pulling schema from database...
+2025-10-30T17:28:59.642643814Z [⣽] Pulling schema from database...
+2025-10-30T17:28:59.770579254Z [⣷] Pulling schema from database...
+2025-10-30T17:28:59.898657094Z [⣯] Pulling schema from database...
+2025-10-30T17:29:00.026821261Z [⣟] Pulling schema from database...
+2025-10-30T17:29:00.154363555Z [⡿] Pulling schema from database...
+2025-10-30T17:29:00.282709343Z [⢿] Pulling schema from database...
+2025-10-30T17:29:00.330534551Z [✓] Pulling schema from database...
+2025-10-30T17:29:00.338476488Z 
+2025-10-30T17:29:00.338485659Z Is companies table created or renamed from another table?
+2025-10-30T17:29:00.338489019Z ❯ + companies                     create table
+2025-10-30T17:29:10.46228352Z   ~ playing_with_neon › companies rename table
+2025-10-30T17:29:10.462305391Z > rest-express@1.0.0 build
+2025-10-30T17:29:10.462312472Z > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-10-30T17:29:10.462330843Z 
+2025-10-30T17:29:10.633860929Z vite v5.4.20 building for production...
+2025-10-30T17:29:10.678585423Z transforming...
+2025-10-30T17:29:10.900712517Z Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+2025-10-30T17:29:10.900732789Z   npx update-browserslist-db@latest
+2025-10-30T17:29:10.900735859Z   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+2025-10-30T17:29:11.574914051Z 
+2025-10-30T17:29:11.574942953Z A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+2025-10-30T17:29:15.349019747Z ✓ 2585 modules transformed.
+2025-10-30T17:29:15.743128179Z rendering chunks...
+2025-10-30T17:29:15.754055603Z computing gzip size...
+2025-10-30T17:29:15.7804066Z ../dist/public/index.html                     0.82 kB │ gzip:   0.45 kB
+2025-10-30T17:29:15.780531328Z ../dist/public/assets/index-B0mdvC1j.css     79.76 kB │ gzip:  13.04 kB
+2025-10-30T17:29:15.780644506Z ../dist/public/assets/index-Cb548lJi.js   1,030.39 kB │ gzip: 307.68 kB
+2025-10-30T17:29:15.780725111Z 
+2025-10-30T17:29:15.780733962Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-30T17:29:15.780739043Z - Using dynamic import() to code-split the application
+2025-10-30T17:29:15.780744183Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-30T17:29:15.780748183Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-10-30T17:29:15.780909734Z ✓ built in 5.13s
+2025-10-30T17:29:15.843559374Z 
+2025-10-30T17:29:15.843582615Z   dist/index.js  44.7kb
+2025-10-30T17:29:15.843587916Z 
+2025-10-30T17:29:15.843595036Z ⚡ Done in 5ms
+2025-10-30T17:29:17.257266452Z ==> Uploading build...
+2025-10-30T17:29:26.0624887Z ==> Uploaded in 5.6s. Compression took 3.2s
+2025-10-30T17:29:26.093307834Z ==> Build successful 🎉
+2025-10-30T17:29:30.809883606Z ==> Deploying...
+2025-10-30T17:30:01.453948941Z ==> Your service is live 🎉
+2025-10-30T17:30:01.576110729Z ==> 
+2025-10-30T17:30:01.648837146Z ==> ///////////////////////////////////////////////////////////
+2025-10-30T17:30:01.721237104Z ==> 
+2025-10-30T17:30:01.793645451Z ==> Available at your primary URL https://connect-github-qmpl.onrender.com
+2025-10-30T17:30:01.865850499Z ==> 
+2025-10-30T17:30:01.939281046Z ==> ///////////////////////////////////////////////////////////
+2025-10-30T17:30:12.753230161Z 5:30:12 PM [express] GET /api/me 304 in 49ms :: {"id":"15b8107d-a5c9-4858-b05f-331482f3c0ed","userna…
+2025-10-30T17:30:13.546012063Z 5:30:13 PM [express] GET /api/employees 304 in 153ms :: [{"id":"c0dfdcf2-5766-4114-9f46-9119b20698da…
+2025-10-30T17:30:13.653281718Z 5:30:13 PM [express] GET /api/vehicles 304 in 249ms :: [{"id":"84a7477b-5b7a-4049-8477-c77f3505267b"…
+2025-10-30T17:30:13.724286005Z 5:30:13 PM [express] GET /api/companies 500 in 329ms :: {"message":"relation \"companies\" does not …
+2025-10-30T17:30:13.740452729Z 5:30:13 PM [express] GET /api/absences 304 in 340ms :: []
+2025-10-30T17:30:13.741919737Z 5:30:13 PM [express] GET /api/companies/selected 304 in 317ms
+2025-10-30T17:30:13.742532602Z 5:30:13 PM [express] GET /api/templates 500 in 337ms :: {"message":"column \"loading_status_data\" d…
+2025-10-30T17:30:13.8389466Z 5:30:13 PM [express] GET /api/roles 304 in 109ms :: ["ENCARGADO","SUBENCARGADO","CHOFER","ACOMPAÑANT…
+2025-10-30T17:30:17.262388884Z 5:30:17 PM [express] DELETE /api/daily-assignments/by-date/2025-10-31 500 in 54ms :: {"message":"col…
+2025-10-30T17:30:21.913364177Z 5:30:21 PM [express] GET /api/daily-assignments 500 in 53ms :: {"message":"column \"loading_status\"…
+2025-10-30T17:30:22.82499418Z 5:30:22 PM [express] GET /api/companies 500 in 112ms :: {"message":"relation \"companies\" does not …
+2025-10-30T17:30:22.865422585Z 5:30:22 PM [express] GET /api/templates 500 in 153ms :: {"message":"column \"loading_status_data\" d…
+2025-10-30T17:30:31.557682296Z 5:30:31 PM [express] POST /api/logout 200 in 30ms :: {"message":"Logout successful"}
+2025-10-30T17:30:32.256851261Z 5:30:32 PM [express] GET /api/me 401 in 14ms :: {"message":"Unauthorized"}
+2025-10-30T17:30:36.048759407Z 5:30:36 PM [express] POST /api/login 200 in 398ms :: {"message":"Login successful","user":{"id":"15b…
+2025-10-30T17:30:36.304721378Z 5:30:36 PM [express] GET /api/me 304 in 42ms :: {"id":"15b8107d-a5c9-4858-b05f-331482f3c0ed","userna…
+2025-10-30T17:30:36.724302787Z 5:30:36 PM [express] GET /api/vehicles 304 in 213ms :: [{"id":"84a7477b-5b7a-4049-8477-c77f3505267b"…
+2025-10-30T17:30:36.725083687Z 5:30:36 PM [express] GET /api/companies/selected 304 in 218ms
+2025-10-30T17:30:36.825435306Z 5:30:36 PM [express] GET /api/companies 500 in 313ms :: {"message":"relation \"companies\" does not …
+2025-10-30T17:30:36.826484993Z 5:30:36 PM [express] GET /api/roles 304 in 311ms :: ["ENCARGADO","SUBENCARGADO","CHOFER","ACOMPAÑANT…
+2025-10-30T17:30:36.827417846Z 5:30:36 PM [express] GET /api/templates 500 in 301ms :: {"message":"column \"loading_status_data\" d…
+2025-10-30T17:30:36.854570852Z 5:30:36 PM [express] GET /api/absences 304 in 322ms :: []
+2025-10-30T17:30:36.89632516Z 5:30:36 PM [express] GET /api/employees 304 in 57ms :: [{"id":"c0dfdcf2-5766-4114-9f46-9119b20698da"…
+2025-10-30T17:30:49.376677401Z 5:30:49 PM [express] DELETE /api/daily-assignments/by-date/2025-10-31 500 in 56ms :: {"message":"col…
+2025-10-30T17:30:55.51638929Z 5:30:55 PM [express] POST /api/templates 500 in 56ms :: {"message":"column \"loading_status_data\" o…
