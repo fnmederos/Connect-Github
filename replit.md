@@ -34,6 +34,9 @@ UUIDs are used for primary keys, array types for roles and assignmentRows, and I
 Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. Production involves Vite building the frontend to `dist/public` and esbuild bundling the backend to `dist/index.js`. Configuration includes path aliases, Tailwind with custom design tokens, PostCSS, and TypeScript strict mode.
 
 **Recent Deployment Fixes (October 30, 2025):**
+- **CRITICAL FIX:** Drizzle Kit prompts made non-interactive (`db:push` script updated to `drizzle-kit push --yes --force`)
+  - Fixes issue where migrations would hang on interactive prompts in Render CI/CD
+  - `--yes` auto-confirms all prompts, `--force` applies changes without additional confirmation
 - Database schema synchronized: Added `companies` table, `loading_status`, `loading_status_data`, and `selected_company_id` columns
 - Session management reconfigured to use shared Neon connection pool (fixes "ENOTFOUND base" error)
 - SSL configuration automated for production via `NODE_ENV=production`

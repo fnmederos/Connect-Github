@@ -1,8 +1,10 @@
 # 🚀 Guía Completa de Deployment en Render con Neon
 
-## ⚡ FIX CRÍTICO APLICADO
+## ⚡ FIXES CRÍTICOS APLICADOS
 
-**Problemas resueltos:** Errores de build en Render por paquetes faltantes
+### Fix #1: Paquetes de Build Faltantes
+
+**Problema:** Errores de build en Render por paquetes faltantes
 
 **Solución:** Movimos las herramientas de build de `devDependencies` a `dependencies` en `package.json` porque Render solo instala dependencias de producción durante el build.
 
@@ -19,6 +21,29 @@
 - ✅ `vite.config.ts` modificado para cargar plugins de Replit solo en desarrollo
 - ✅ Los plugins `@replit/vite-plugin-*` permanecen en `devDependencies`
 - ✅ Esto evita errores de "Cannot find package" en Render
+
+---
+
+### Fix #2: Drizzle Kit Prompts Interactivos en CI/CD
+
+**Problema:** Drizzle Kit se quedaba esperando input del usuario durante `npm run db:push`, causando que las migraciones no se aplicaran en Render.
+
+**Síntoma en los logs:**
+```
+Is companies table created or renamed from another table?
+❯ + companies                     create table
+  ~ playing_with_neon › companies rename table
+[Build continúa pero las migraciones no se aplican]
+```
+
+**Solución:** Actualizado el script `db:push` en `package.json`:
+```json
+"db:push": "drizzle-kit push --yes --force"
+```
+
+- `--yes`: Responde automáticamente "yes" a todos los prompts
+- `--force`: Aplica cambios sin confirmación adicional
+- Ahora es **completamente no-interactivo** para CI/CD
 
 ✅ **Este repositorio ya tiene todos los fixes aplicados.** Solo necesitas seguir los pasos de configuración abajo.
 
@@ -66,8 +91,9 @@ postgresql://neondb_owner:password@ep-cool-name-123-pooler.us-east-2.aws.neon.te
 
 **Build Command:**
 ```bash
-npm install; npm run db:push -- --force; npm run build
+npm install; npm run db:push; npm run build
 ```
+> **Nota:** `db:push` ahora incluye `--yes --force` automáticamente para evitar prompts interactivos.
 
 **Start Command:**
 ```bash
@@ -221,13 +247,13 @@ Antes de redeploy, confirma que `DATABASE_URL` está configurada:
 
 1. **Ve a Render Dashboard** → tu servicio web
 2. Click en **"Manual Deploy"** → **"Clear build cache & deploy"**
-3. Esto forzará la ejecución de `npm run db:push -- --force`
+3. Esto forzará la ejecución de `npm run db:push` (incluye `--yes --force` automáticamente)
 
 **Paso 3: Verificar Build Logs**
 
 Durante el build, busca esta sección:
 ```
-> npm run db:push -- --force
+> npm run db:push
 
 ✓ Applying changes...
 ✓ Table 'companies' created
@@ -258,8 +284,9 @@ Si `npm run db:push` sigue fallando durante el build:
 2. Click en **"Connect to Shell"** (esto abre una terminal en tu servicio)
 3. Ejecuta manualmente:
    ```bash
-   npm run db:push -- --force
+   npm run db:push
    ```
+   > El script ya incluye `--yes --force` para aplicar cambios automáticamente
 4. Verifica el output y corrige cualquier error
 5. Una vez exitoso, redeploy normalmente
 
@@ -380,7 +407,7 @@ Antes de hacer deploy, verifica:
 - [ ] `DATABASE_URL` está en Environment tab de Render
 - [ ] `NODE_ENV=production` está configurado
 - [ ] `SESSION_SECRET` está configurado (32+ caracteres)
-- [ ] Build command: `npm install; npm run db:push -- --force; npm run build`
+- [ ] Build command: `npm install; npm run db:push; npm run build`
 - [ ] Start command: `npm start`
 
 ---
