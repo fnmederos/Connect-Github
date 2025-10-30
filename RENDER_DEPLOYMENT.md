@@ -14,6 +14,11 @@
 - ✅ `tailwindcss`, `postcss`, `autoprefixer` - Para CSS
 - ✅ `@vitejs/plugin-react`, `@tailwindcss/vite` - Plugins de build
 
+**Plugins de Replit condicionados (solo desarrollo):**
+- ✅ `vite.config.ts` modificado para cargar plugins de Replit solo en desarrollo
+- ✅ Los plugins `@replit/vite-plugin-*` permanecen en `devDependencies`
+- ✅ Esto evita errores de "Cannot find package" en Render
+
 ✅ **Este repositorio ya tiene todos los fixes aplicados.** Solo necesitas seguir los pasos de configuración abajo.
 
 ---
@@ -185,6 +190,34 @@ Si lo ves en tu propio proyecto, mueve estos paquetes a `dependencies`:
 - `@vitejs/plugin-react`, `@tailwindcss/vite`
 
 Render solo instala `dependencies` en producción, no `devDependencies`
+
+---
+
+### Error: "Cannot find package '@replit/vite-plugin-*'" durante build
+
+**Causa:** `vite.config.ts` importa plugins de Replit que están en `devDependencies`
+
+**Solución:**
+✅ **Ya está arreglado en este repositorio.**
+
+Los plugins de Replit solo se necesitan en desarrollo. Modifica `vite.config.ts` para cargarlos condicionalmente:
+
+```typescript
+plugins: [
+  react(),
+  ...(process.env.NODE_ENV !== "production" &&
+  process.env.REPL_ID !== undefined
+    ? [
+        await import("@replit/vite-plugin-runtime-error-modal").then((m) =>
+          m.default(),
+        ),
+        // ... otros plugins de Replit
+      ]
+    : []),
+],
+```
+
+Esto evita que Vite intente cargar plugins de Replit en producción
 
 ---
 
