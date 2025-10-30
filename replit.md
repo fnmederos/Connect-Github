@@ -52,6 +52,13 @@ Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. P
 - Requires Neon Pooled Connection String with `-pooler` and `?sslmode=require`
 - Environment variables: `DATABASE_URL`, `NODE_ENV=production`, `SESSION_SECRET`
 
+**Important: Development vs Production Databases:**
+- Replit uses a development database (DATABASE_URL in Replit Secrets)
+- Render uses a separate production database (DATABASE_URL in Render Environment)
+- Schema changes in Replit only affect development - must redeploy in Render to sync production
+- Never execute SQL manually in production - use `npm run db:push --force` via Render deploy
+- To sync production schema: Manual Deploy → Clear build cache & deploy in Render Dashboard
+
 ### Authentication & Authorization
 The system uses traditional username/password authentication with bcrypt for password hashing. User sessions are managed via express-session with PostgreSQL storage. Each user has an isolated workspace with complete data separation - all employees, vehicles, roles, templates, and assignments are scoped to the user's account.
 

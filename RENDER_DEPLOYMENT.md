@@ -195,6 +195,91 @@ Render solo instala `dependencies` en producción, no `devDependencies`
 
 ---
 
+### Error: "column 'loading_status' does not exist" en Producción
+
+**Síntoma:**
+```
+5:30:49 PM [express] DELETE /api/daily-assignments/by-date/2025-10-31 500
+5:30:55 PM [express] POST /api/templates 500 :: {"message":"column \"loading_status_data\" o…
+```
+
+**Causa:** La base de datos de producción en Render no tiene las columnas/tablas más recientes porque:
+- El deploy inicial no ejecutó `npm run db:push -- --force`
+- O se usó una BD diferente entre desarrollo y producción
+
+**Solución:**
+
+**Paso 1: Verificar Variables de Entorno**
+
+Antes de redeploy, confirma que `DATABASE_URL` está configurada:
+1. Ve a Render Dashboard → tu servicio → pestaña **"Environment"**
+2. Verifica que existe `DATABASE_URL` con la Pooled Connection String
+3. Formato correcto: `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require`
+4. ⚠️ **CRÍTICO:** Sin `DATABASE_URL`, el build no puede ejecutar `npm run db:push`
+
+**Paso 2: Forzar Redeploy**
+
+1. **Ve a Render Dashboard** → tu servicio web
+2. Click en **"Manual Deploy"** → **"Clear build cache & deploy"**
+3. Esto forzará la ejecución de `npm run db:push -- --force`
+
+**Paso 3: Verificar Build Logs**
+
+Durante el build, busca esta sección:
+```
+> npm run db:push -- --force
+
+✓ Applying changes...
+✓ Table 'companies' created
+✓ Column 'loading_status' added to 'daily_assignments'
+✓ Column 'loading_status_data' added to 'templates'
+✓ Column 'selected_company_id' added to 'users'
+```
+
+**Si ves errores en `db:push`:**
+
+**Error común:** `Error: connect ENOTFOUND`
+- **Causa:** DATABASE_URL no está definida o es incorrecta
+- **Solución:** Vuelve al Paso 1, corrige DATABASE_URL
+
+**Error común:** `SSL connection error`
+- **Causa:** Falta `?sslmode=require` en DATABASE_URL
+- **Solución:** Agrega `?sslmode=require` al final de la URL
+
+**Error común:** `authentication failed`
+- **Causa:** Credenciales incorrectas en DATABASE_URL
+- **Solución:** Regenera la Pooled Connection String en Neon Console
+
+**Paso 4: Procedimiento de Emergencia (si el build falla repetidamente)**
+
+Si `npm run db:push` sigue fallando durante el build:
+
+1. Ve a Render Dashboard → tu servicio → pestaña **"Shell"**
+2. Click en **"Connect to Shell"** (esto abre una terminal en tu servicio)
+3. Ejecuta manualmente:
+   ```bash
+   npm run db:push -- --force
+   ```
+4. Verifica el output y corrige cualquier error
+5. Una vez exitoso, redeploy normalmente
+
+**Paso 5: Probar la App**
+
+Una vez completado el deploy exitosamente:
+1. Visita tu URL de producción
+2. Prueba crear templates, daily assignments
+3. Verifica que no haya errores 500 en los logs
+
+**⚠️ NO Ejecutes SQL Manualmente:**
+Aunque sea tentador copiar/pegar SQL en Neon Console, esto puede causar:
+- Inconsistencias entre el schema de Drizzle y la BD real
+- Problemas con futuras migraciones
+- Errores difíciles de debuggear
+
+**Usa siempre el proceso automatizado de Drizzle vía deploy en Render.**
+
+---
+
 ### Error: "Cannot find module '@tailwindcss/typography'"
 
 **Causa:** El plugin `@tailwindcss/typography` está en `devDependencies` pero es requerido por `tailwind.config.ts` durante el build
@@ -297,6 +382,50 @@ Antes de hacer deploy, verifica:
 - [ ] `SESSION_SECRET` está configurado (32+ caracteres)
 - [ ] Build command: `npm install; npm run db:push -- --force; npm run build`
 - [ ] Start command: `npm start`
+
+---
+
+## 🔄 Sincronizar Schema en Producción
+
+### ⚠️ IMPORTANTE: Bases de Datos Separadas
+
+**Desarrollo (Replit) y Producción (Render) usan bases de datos DIFERENTES:**
+
+- **Replit:** DATABASE_URL apunta a una BD de desarrollo
+- **Render:** DATABASE_URL apunta a una BD de producción (separada)
+
+**Esto significa:**
+- Cambios de schema en Replit solo afectan la BD de desarrollo
+- Para sincronizar producción, debes forzar un nuevo deploy en Render
+
+### ✅ Cómo Sincronizar la BD de Producción
+
+**Requisito Previo:**
+⚠️ **DATABASE_URL debe estar configurada en Environment variables** para que `npm run db:push` funcione durante el build. Sin esto, el schema no se sincronizará.
+
+**Opción 1: Manual Trigger (Recomendado)**
+
+1. **Verifica DATABASE_URL:** Render Dashboard → Environment tab → confirma que existe
+2. Ve a tu servicio en Render Dashboard
+3. Click en **"Manual Deploy"** → **"Clear build cache & deploy"**
+4. Esto ejecutará `npm run db:push -- --force` durante el build
+5. **Verifica los logs del build** - busca "Applying changes..." para confirmar éxito
+
+**Opción 2: Git Push (Automático)**
+
+1. **Verifica DATABASE_URL:** Render Dashboard → Environment tab → confirma que existe
+2. Haz cualquier commit pequeño (puede ser un comentario)
+3. Push a tu repositorio
+4. Render detectará el cambio y hará un nuevo deploy automáticamente
+5. **Verifica los logs del build** para confirmar que el schema se aplicó
+
+**⚠️ NO Ejecutes SQL Manualmente**
+
+Evita ejecutar SQL directamente en Neon Console porque:
+- ❌ Puede crear inconsistencias entre Drizzle schema y BD
+- ❌ No se rastrea en control de versiones
+- ❌ Puede romper migraciones futuras
+- ✅ Usa **siempre** `npm run db:push -- --force` vía deploy en Render
 
 ---
 
