@@ -2,11 +2,19 @@
 
 ## ⚡ FIX CRÍTICO APLICADO
 
-**Problema resuelto:** `drizzle-kit: not found` durante build en Render
+**Problemas resueltos:** Errores de build en Render por paquetes faltantes
 
-**Solución:** Movimos `drizzle-kit` de `devDependencies` a `dependencies` en `package.json` porque Render solo instala dependencias de producción durante el build.
+**Solución:** Movimos las herramientas de build de `devDependencies` a `dependencies` en `package.json` porque Render solo instala dependencias de producción durante el build.
 
-✅ **Este repositorio ya tiene el fix aplicado.** Solo necesitas seguir los pasos de configuración abajo.
+**Paquetes movidos a `dependencies`:**
+- ✅ `drizzle-kit` - Para migraciones de BD
+- ✅ `vite` - Para buildear el frontend
+- ✅ `esbuild` - Para bundlear el backend
+- ✅ `typescript` - Compilador TypeScript
+- ✅ `tailwindcss`, `postcss`, `autoprefixer` - Para CSS
+- ✅ `@vitejs/plugin-react`, `@tailwindcss/vite` - Plugins de build
+
+✅ **Este repositorio ya tiene todos los fixes aplicados.** Solo necesitas seguir los pasos de configuración abajo.
 
 ---
 
@@ -161,18 +169,22 @@ Una vez deployado:
 
 ## 🐛 Troubleshooting
 
-### Error: "drizzle-kit: not found" durante build
+### Error: "drizzle-kit: not found" o "vite: not found" durante build
 
-**Causa:** `drizzle-kit` estaba en `devDependencies` en lugar de `dependencies`
+**Causa:** Herramientas de build estaban en `devDependencies` en lugar de `dependencies`
 
 **Solución:**
 ✅ **Ya está arreglado en este repositorio.**
 
-Si lo ves en tu propio proyecto:
-1. Edita `package.json`
-2. Mueve `"drizzle-kit": "^0.31.6"` de `devDependencies` a `dependencies`
-3. Commit y push los cambios
-4. Render automáticamente rebuildeará con el fix
+Si lo ves en tu propio proyecto, mueve estos paquetes a `dependencies`:
+- `drizzle-kit`
+- `vite`
+- `esbuild`
+- `typescript`
+- `tailwindcss`, `postcss`, `autoprefixer`
+- `@vitejs/plugin-react`, `@tailwindcss/vite`
+
+Render solo instala `dependencies` en producción, no `devDependencies`
 
 ---
 

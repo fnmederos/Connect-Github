@@ -37,7 +37,12 @@ Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. P
 - Database schema synchronized: Added `companies` table, `loading_status`, `loading_status_data`, and `selected_company_id` columns
 - Session management reconfigured to use shared Neon connection pool (fixes "ENOTFOUND base" error)
 - SSL configuration automated for production via `NODE_ENV=production`
-- `drizzle-kit` moved from devDependencies to dependencies for Render build compatibility
+- Build tools moved from devDependencies to dependencies for Render compatibility:
+  - `drizzle-kit` - For database migrations
+  - `vite`, `esbuild` - For building frontend/backend
+  - `typescript` - TypeScript compiler
+  - `tailwindcss`, `postcss`, `autoprefixer` - CSS processing
+  - `@vitejs/plugin-react`, `@tailwindcss/vite` - Build plugins
 - Comprehensive deployment guide created in `RENDER_DEPLOYMENT.md`
 
 **Deployment to Render:**
