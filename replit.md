@@ -33,6 +33,18 @@ UUIDs are used for primary keys, array types for roles and assignmentRows, and I
 ### Build & Deployment
 Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. Production involves Vite building the frontend to `dist/public` and esbuild bundling the backend to `dist/index.js`. Configuration includes path aliases, Tailwind with custom design tokens, PostCSS, and TypeScript strict mode.
 
+**Recent Deployment Fixes (October 30, 2025):**
+- Database schema synchronized: Added `companies` table, `loading_status`, `loading_status_data`, and `selected_company_id` columns
+- Session management reconfigured to use shared Neon connection pool (fixes "ENOTFOUND base" error)
+- SSL configuration automated for production via `NODE_ENV=production`
+- `drizzle-kit` moved from devDependencies to dependencies for Render build compatibility
+- Comprehensive deployment guide created in `RENDER_DEPLOYMENT.md`
+
+**Deployment to Render:**
+- Database migrations automated via `npm run db:push -- --force` in build command
+- Requires Neon Pooled Connection String with `-pooler` and `?sslmode=require`
+- Environment variables: `DATABASE_URL`, `NODE_ENV=production`, `SESSION_SECRET`
+
 ### Authentication & Authorization
 The system uses traditional username/password authentication with bcrypt for password hashing. User sessions are managed via express-session with PostgreSQL storage. Each user has an isolated workspace with complete data separation - all employees, vehicles, roles, templates, and assignments are scoped to the user's account.
 

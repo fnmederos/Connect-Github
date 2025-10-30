@@ -1,5 +1,15 @@
 # 🚀 Guía Completa de Deployment en Render con Neon
 
+## ⚡ FIX CRÍTICO APLICADO
+
+**Problema resuelto:** `drizzle-kit: not found` durante build en Render
+
+**Solución:** Movimos `drizzle-kit` de `devDependencies` a `dependencies` en `package.json` porque Render solo instala dependencias de producción durante el build.
+
+✅ **Este repositorio ya tiene el fix aplicado.** Solo necesitas seguir los pasos de configuración abajo.
+
+---
+
 ## ✅ Lo que acabas de arreglar en Replit
 
 Tu base de datos ya está 100% sincronizada con el schema. Las siguientes columnas y tablas fueron creadas:
@@ -8,6 +18,7 @@ Tu base de datos ya está 100% sincronizada con el schema. Las siguientes column
 - ✅ Columna `loading_status` en `daily_assignments`
 - ✅ Columna `loading_status_data` en `templates`
 - ✅ Columna `selected_company_id` en `users`
+- ✅ **`drizzle-kit` movido a `dependencies`** para deployments en producción
 
 ## 📋 Pasos para Deployar en Render
 
@@ -149,6 +160,21 @@ Una vez deployado:
 ---
 
 ## 🐛 Troubleshooting
+
+### Error: "drizzle-kit: not found" durante build
+
+**Causa:** `drizzle-kit` estaba en `devDependencies` en lugar de `dependencies`
+
+**Solución:**
+✅ **Ya está arreglado en este repositorio.**
+
+Si lo ves en tu propio proyecto:
+1. Edita `package.json`
+2. Mueve `"drizzle-kit": "^0.31.6"` de `devDependencies` a `dependencies`
+3. Commit y push los cambios
+4. Render automáticamente rebuildeará con el fix
+
+---
 
 ### Error: "column does not exist" o "relation does not exist"
 
