@@ -42,6 +42,7 @@ Development uses Vite for the frontend (HMR) and `tsx` for backend TypeScript. P
   - `vite`, `esbuild` - For building frontend/backend
   - `typescript` - TypeScript compiler
   - `tailwindcss`, `postcss`, `autoprefixer` - CSS processing
+  - `@tailwindcss/typography` - Tailwind plugin (required by tailwind.config.ts)
   - `@vitejs/plugin-react`, `@tailwindcss/vite` - Build plugins
 - Vite config updated to load Replit plugins conditionally (development only)
 - Comprehensive deployment guide created in `RENDER_DEPLOYMENT.md`

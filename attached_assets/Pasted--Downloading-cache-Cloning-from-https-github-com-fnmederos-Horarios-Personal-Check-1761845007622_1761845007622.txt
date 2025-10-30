@@ -1,0 +1,61 @@
+==> Downloading cache...
+==> Cloning from https://github.com/fnmederos/Horarios-Personal
+==> Checking out commit 402f7ccc9332ab0676c0ef72732e1b7b33f99a8e in branch main
+==> Transferred 214MB in 7s. Extraction took 4s.
+==> Using Node.js version 22.16.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm install; npm run db:push -- --force; npm run build'...
+up to date, audited 480 packages in 1s
+63 packages are looking for funding
+  run `npm fund` for details
+9 vulnerabilities (3 low, 5 moderate, 1 high)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+Some issues need review, and may require choosing
+a different dependency.
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push --force
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[✓] Pulling schema from database...
+Is companies table created or renamed from another table?
+❯ + companies                     create table
+  ~ playing_with_neon › companies rename table
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3 modules transformed.
+x Build failed in 313ms
+error during build:
+[vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+Require stack:
+- /opt/render/project/src/tailwind.config.ts
+file: /opt/render/project/src/client/src/index.css:undefined:NaN
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+    at Function.resolve (node:internal/modules/helpers:145:19)
+    at _resolve (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:241814)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:244531)
+    at /opt/render/project/src/tailwind.config.ts:106:45
+    at evalModule (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:247313)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:245241)
+    at /opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:52:26
+    at loadConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:62:6)
+    at getTailwindConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:71:116)
+==> Build failed 😞
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

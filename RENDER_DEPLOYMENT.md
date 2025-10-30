@@ -12,6 +12,7 @@
 - ✅ `esbuild` - Para bundlear el backend
 - ✅ `typescript` - Compilador TypeScript
 - ✅ `tailwindcss`, `postcss`, `autoprefixer` - Para CSS
+- ✅ `@tailwindcss/typography` - Plugin de Tailwind (requerido por tailwind.config.ts)
 - ✅ `@vitejs/plugin-react`, `@tailwindcss/vite` - Plugins de build
 
 **Plugins de Replit condicionados (solo desarrollo):**
@@ -187,9 +188,24 @@ Si lo ves en tu propio proyecto, mueve estos paquetes a `dependencies`:
 - `esbuild`
 - `typescript`
 - `tailwindcss`, `postcss`, `autoprefixer`
+- `@tailwindcss/typography` (si se usa en tailwind.config.ts)
 - `@vitejs/plugin-react`, `@tailwindcss/vite`
 
 Render solo instala `dependencies` en producción, no `devDependencies`
+
+---
+
+### Error: "Cannot find module '@tailwindcss/typography'"
+
+**Causa:** El plugin `@tailwindcss/typography` está en `devDependencies` pero es requerido por `tailwind.config.ts` durante el build
+
+**Solución:**
+✅ **Ya está arreglado en este repositorio.**
+
+Si lo ves en tu propio proyecto:
+1. Verifica tu `tailwind.config.ts` - ¿usa `require("@tailwindcss/typography")`?
+2. Si es así, mueve `@tailwindcss/typography` de `devDependencies` a `dependencies`
+3. Cualquier plugin usado en `tailwind.config.ts` debe estar en `dependencies`
 
 ---
 
